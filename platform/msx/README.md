@@ -2,8 +2,10 @@
 
 # MSX platform adapter
 
-This directory is reserved for independently written MSX and MSX2 platform
-code. No adapter source has been added yet.
+This directory contains independently written MSX and MSX2 platform code.
+`layout_stub.z80` currently exports the complete platform symbol set only to
+prove link addresses and ROM capacity. It is deliberately nonfunctional and
+is not a usable adapter.
 
 The first implementation will provide:
 

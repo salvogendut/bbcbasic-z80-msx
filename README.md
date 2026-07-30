@@ -10,7 +10,9 @@ cartridge or ROM payload as a second target.
 The port is at the bring-up stage. There is not yet a bootable MSX binary.
 The preserved source now has a standalone, verified build for its generic
 CP/M baseline; the MSX console, storage, memory, and startup adapters still
-have to be implemented.
+have to be implemented. A deterministic 16 KiB MSX link-layout artifact now
+proves the proposed ROM and RAM addresses, but its adapter is deliberately
+nonfunctional.
 
 ## Repository branches
 
@@ -47,6 +49,15 @@ licensing caveat about `zmac`.
 
 The imported `build.py` is retained for provenance but depends on CP/Mish's
 build helper modules. The new build driver is standalone.
+
+The same external tools can build the nonfunctional MSX layout proof:
+
+```sh
+make msx-layout ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+`build/msx-layout/bbcbasic_msx_layout.rom` is for address-map testing only. It
+must not be distributed or presented as a usable interpreter.
 
 The port plan and platform boundary are documented in
 [docs/PORTING.md](docs/PORTING.md) and

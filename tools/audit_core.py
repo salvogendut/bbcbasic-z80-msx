@@ -150,6 +150,17 @@ def audit_core() -> AuditReport:
             f"expected {sorted(EXPECTED_PLATFORM_SYMBOLS)}"
         )
 
+    layout_exports = directive_symbols(
+        ("platform/msx/layout_stub.z80",),
+        "GLOBAL",
+    )
+    missing_layout_exports = EXPECTED_PLATFORM_SYMBOLS - layout_exports
+    if missing_layout_exports:
+        failures.append(
+            "layout stub is missing platform symbols: "
+            f"{sorted(missing_layout_exports)}"
+        )
+
     return AuditReport(
         failures=failures,
         platform_symbols=platform_symbols,

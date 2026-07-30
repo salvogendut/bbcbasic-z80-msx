@@ -1,0 +1,111 @@
+; SPDX-License-Identifier: BSD-3-Clause
+;
+; Link-layout stub for BBC BASIC on MSX.
+;
+; This file proves the cartridge header, interpreter ROM placement, platform
+; symbol boundary, and writable-state placement. It is deliberately not a
+; working console adapter and must not be presented as a usable MSX payload.
+
+        TITLE   BBC BASIC MSX LINK-LAYOUT STUB
+
+        EXTRN   START
+        EXTRN   ACCS
+        EXTRN   USER
+
+        GLOBAL  CLRSCN
+        GLOBAL  GETCSR
+        GLOBAL  GETEXT
+        GLOBAL  GETIME
+        GLOBAL  GETPTR
+        GLOBAL  LTRAP
+        GLOBAL  OSBGET
+        GLOBAL  OSBPUT
+        GLOBAL  OSCALL
+        GLOBAL  OSCLI
+        GLOBAL  OSINIT
+        GLOBAL  OSKEY
+        GLOBAL  OSLINE
+        GLOBAL  OSLOAD
+        GLOBAL  OSOPEN
+        GLOBAL  OSRDCH
+        GLOBAL  OSSAVE
+        GLOBAL  OSSHUT
+        GLOBAL  OSSTAT
+        GLOBAL  OSWRCH
+        GLOBAL  PROMPT
+        GLOBAL  PUTCSR
+        GLOBAL  PUTIME
+        GLOBAL  PUTPTR
+        GLOBAL  RESET
+        GLOBAL  TRAP
+
+        ASEG
+        ORG     4000H
+
+; Conventional MSX cartridge header. Only the initialization entry is used.
+        DEFB    'A','B'
+        DEFW    ENTRY
+        DEFW    0
+        DEFW    0
+        DEFW    0
+        DEFS    6
+
+ENTRY:  JP      START
+
+; OSINIT returns the first user byte and a conservative top-of-memory value.
+; The real adapter must validate RAM/slot state and reserve stack/work areas.
+OSINIT: LD      HL,USER
+        LD      DE,0F300H
+        RET
+
+; Supply an empty line so accidental execution stays within the command loop.
+OSLINE: LD      HL,ACCS
+        LD      (HL),0DH
+        RET
+
+; Console output and prompt are intentionally silent.
+OSWRCH:
+PROMPT:
+CLRSCN:
+PUTCSR:
+PUTIME:
+PUTPTR:
+LTRAP:
+TRAP:
+OSCALL:
+OSSHUT:
+        RET
+
+; No input is available.
+OSRDCH: XOR     A
+        RET
+OSKEY:  OR      A               ;CLEAR CARRY: TIMEOUT
+        RET
+
+; Return zero positions, time, pointers, and extent.
+GETCSR:
+GETIME:
+GETPTR:
+GETEXT: LD      DE,0
+        LD      HL,0
+        RET
+
+; Storage and command services are unsupported in the layout stub.
+OSOPEN: XOR     A
+        RET
+OSBGET: SCF                     ;END OF FILE / UNSUPPORTED
+        RET
+OSBPUT:
+OSLOAD:
+OSSAVE:
+OSSTAT:
+OSCLI:  SCF
+        RET
+
+RESET:  JP      ENTRY
+
+        IF      $ GT 4100H
+        ERROR   'MSX layout stub exceeds reserved first ROM page'
+        ENDIF
+
+FIN:    END

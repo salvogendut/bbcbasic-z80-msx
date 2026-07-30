@@ -25,6 +25,12 @@ The verified CP/M link map reports:
 The core plus an adapter comparable in size to the current CP/M layer fits in
 a 16 KiB payload ROM.
 
+The link-layout target confirms the concrete placement: the cartridge veneer
+is at `4000h`, the unchanged core occupies `4100h-71CBh`, and the 768-byte RAM
+module occupies `8000h-82FFh`. The resulting 16 KiB layout ROM has SHA-256
+`b92d38754db7451e3e14acd0c1ae05efea2c50c99a2b920ee36e35bfc906be11`.
+Its service routines are nonfunctional stubs.
+
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking
 the module at `8000h` satisfies that requirement and places the first user
 byte at `8300h`.

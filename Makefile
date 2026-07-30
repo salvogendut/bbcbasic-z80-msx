@@ -5,7 +5,8 @@ ZMAC ?= zmac
 LD80 ?= ld80
 BUILD_DIR ?= build
 
-.PHONY: audit-core check cpm-baseline help test toolcheck verify-provenance
+.PHONY: audit-core check cpm-baseline help msx-layout test toolcheck \
+	verify-provenance
 
 help:
 	@echo "make test               Run source-layout tests"
@@ -13,6 +14,7 @@ help:
 	@echo "make audit-core         Check the interpreter/platform boundary"
 	@echo "make toolcheck          Check for the legacy CP/M build tools"
 	@echo "make cpm-baseline       Build the known ADM-3A CP/M image"
+	@echo "make msx-layout         Build the nonfunctional 16 KiB layout proof"
 	@echo "make check              Run all checks which do not require an assembler"
 
 test:
@@ -33,5 +35,10 @@ cpm-baseline: toolcheck
 	$(PYTHON) tools/build_cpm_baseline.py \
 		--zmac "$(ZMAC)" --ld80 "$(LD80)" \
 		--output-dir "$(BUILD_DIR)/cpm"
+
+msx-layout: toolcheck
+	$(PYTHON) tools/build_msx_layout.py \
+		--zmac "$(ZMAC)" --ld80 "$(LD80)" \
+		--output-dir "$(BUILD_DIR)/msx-layout"
 
 check: test verify-provenance audit-core

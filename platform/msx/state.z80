@@ -1,6 +1,6 @@
 ; SPDX-License-Identifier: BSD-3-Clause
 ;
-; Writable state used by the console-only MSX adapter.
+; Writable state used by the MSX adapter.
 
         TITLE   BBC BASIC MSX ADAPTER STATE
 
@@ -11,6 +11,16 @@
         GLOBAL  PENDVAL
         GLOBAL  ESCFLAG
         GLOBAL  TRAPCNT
+        GLOBAL  GRAPHX
+        GLOBAL  GRAPHY
+        GLOBAL  GRAPHCOLOUR
+        GLOBAL  TARGETX
+        GLOBAL  TARGETY
+        GLOBAL  DELTAX
+        GLOBAL  DELTAY
+        GLOBAL  STEPX
+        GLOBAL  STEPY
+        GLOBAL  LINEERR
 
 PSTBASE:
 TIMEOFF:        DEFS    4
@@ -18,6 +28,16 @@ PENDKEY:        DEFS    1
 PENDVAL:        DEFS    1
 ESCFLAG:        DEFS    1
 TRAPCNT:        DEFS    1
+GRAPHX:         DEFS    1
+GRAPHY:         DEFS    1
+GRAPHCOLOUR:    DEFS    1
+TARGETX:        DEFS    1
+TARGETY:        DEFS    1
+DELTAX:         DEFS    1
+DELTAY:         DEFS    1
+STEPX:          DEFS    1
+STEPY:          DEFS    1
+LINEERR:        DEFS    1
 PSTEND:
 
 FIN:    END

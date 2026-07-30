@@ -31,22 +31,24 @@ module occupies `8000h-82FFh`. The resulting 16 KiB layout ROM has SHA-256
 `b92d38754db7451e3e14acd0c1ae05efea2c50c99a2b920ee36e35bfc906be11`.
 Its service routines are nonfunctional stubs.
 
-The subsequent console build keeps the cartridge veneer at `4000h`, places
-the independently written adapter at `4013h-4230h`, the unchanged core at
-`4400h-74CBh`, RainBIOS payload descriptor v1 at `7FF0h-7FFFh`, fixed RAM at
-`8000h-82FFh`, and eight adapter-state bytes at `8300h-8307h`. Its 16 KiB ROM
+The subsequent MSX build keeps the cartridge veneer at `4000h`, places the
+independently written console adapter at `4013h-423Ah`, the unchanged core at
+`4400h-74C1h`, and the independently written graphics adapter at
+`74C2h-77AAh`. RainBIOS payload descriptor v1 remains at `7FF0h-7FFFh`, fixed
+RAM at `8000h-82FFh`, and 18 adapter-state bytes at `8300h-8311h`. Its 16 KiB ROM
 has SHA-256
-`2a53b54be1f5b734f1f8f9ea075c62b1cdedab5aad516334da74f60614987bcd`.
+`5ef2f2b17709832c5a3ee59892dba806953cd0b5ec032e43df5dcd7f24f254a5`.
 The build driver parses the linker map and rejects boundary overlap.
 
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking
-the module at `8000h` satisfies that requirement and places the first user
-byte at `8300h`.
+the module at `8000h` satisfies that requirement. The platform state follows
+the fixed RAM, so `OSINIT` exposes the first user byte at `8312h`.
 
 ## Platform interface
 
-After resolving symbols supplied by the language core, graphics/sound stubs,
-and `ram.z80`, the MSX adapter must provide these 26 symbols:
+After resolving symbols supplied by the language core, the new graphics
+adapter (including the remaining sound/device stubs), and `ram.z80`, the
+console adapter must provide these 26 symbols:
 
 ```text
 CLRSCN  GETCSR  GETEXT  GETIME  GETPTR  LTRAP  OSBGET
@@ -95,6 +97,12 @@ plus enough white pixels for the BBC BASIC banner and prompt. Together these
 tests establish ROM safety for the exercised P1 paths, not for arbitrary
 machine code invoked by `CALL`, `USR`, `INP`, `OUT`, or `OSCALL`.
 
+The Graphics II integration test retains the cartridge write watch while
+running a stored BASIC program with `MODE`, `GCOL`, `MOVE`, `DRAW`, `PLOT`,
+and `POINT`. It checks mode registers, VRAM reference pixels and colours, and
+pixel readback. RainBIOS also runs the same workload, while 1983 independently
+checks the rendered multicolour frame.
+
 The three page alignments and stack bound are fixed by the link map and
 `OSINIT`: `ACCS=8000h`, `BUFFER=8100h`, `STAVAR=8200h`, user RAM begins at
-`8308h`, and the initial stack/top-of-memory value is `F300h`.
+`8312h`, and the initial stack/top-of-memory value is `F300h`.

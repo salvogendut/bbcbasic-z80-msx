@@ -1,0 +1,500 @@
+; SPDX-License-Identifier: BSD-3-Clause
+;
+; BBC BASIC graphics adapter for the TMS9918 Graphics II screen.
+;
+; BBC logical coordinates (0..1279, 0..1023, origin at bottom left) are
+; scaled to the 256x192 MSX display. The initial raster operations use one
+; foreground colour over black in each TMS9918 eight-pixel colour cell.
+
+        TITLE   BBC BASIC MSX GRAPHICS ADAPTER
+
+        EXTRN   XEQ
+        EXTRN   EXTERR
+        EXTRN   EXPRI
+        EXTRN   COMMA
+        EXTRN   BRAKET
+
+        EXTRN   GRAPHX
+        EXTRN   GRAPHY
+        EXTRN   GRAPHCOLOUR
+        EXTRN   TARGETX
+        EXTRN   TARGETY
+        EXTRN   DELTAX
+        EXTRN   DELTAY
+        EXTRN   STEPX
+        EXTRN   STEPY
+        EXTRN   LINEERR
+
+        GLOBAL  CLG
+        GLOBAL  COLOUR
+        GLOBAL  DRAW
+        GLOBAL  ENVEL
+        GLOBAL  GCOL
+        GLOBAL  MODE
+        GLOBAL  MOVE
+        GLOBAL  PLOT
+        GLOBAL  SOUND
+        GLOBAL  ADVAL
+        GLOBAL  POINT
+        GLOBAL  GETIMS
+        GLOBAL  PUTIMS
+
+; Published MSX BIOS entry points and work-area state.
+RDVRM   EQU     004AH
+WRTVRM  EQU     004DH
+FILVRM  EQU     0056H
+INITXT  EQU     006CH
+INITGRP EQU     0072H
+SCRMOD  EQU     0FCAFH
+
+; MODE 2 selects Graphics II. MODE 7 returns to the 40-column text screen.
+MODE:   CALL    EXPRI
+        EXX
+        LD      A,H
+        OR      A
+        JR      NZ,GRAPHERR
+        LD      A,L
+        CP      2
+        JR      Z,MODE2
+        CP      7
+        JP      NZ,GRAPHERR
+        CALL    INITXT
+        JP      XEQ
+MODE2:  CALL    INITGRP
+        CALL    RESETGRAPH
+        JP      XEQ
+
+; Clear the Graphics II bitmap and reset the graphics cursor to BBC (0,0).
+CLG:    LD      A,(SCRMOD)
+        CP      2
+        CALL    NZ,INITGRP
+        CALL    CLEARGRAPH
+        JP      XEQ
+
+CLEARGRAPH:
+        LD      HL,0000H
+        LD      BC,1800H
+        XOR     A
+        CALL    FILVRM
+        LD      HL,2000H
+        LD      BC,1800H
+        LD      A,(GRAPHCOLOUR)
+        AND     0FH
+        RLCA
+        RLCA
+        RLCA
+        RLCA
+        OR      1
+        CALL    FILVRM
+RESETGRAPH:
+        XOR     A
+        LD      (GRAPHX),A
+        LD      A,191
+        LD      (GRAPHY),A
+        RET
+
+; GCOL 0,c selects a BBC solid foreground colour. Logical colours 0..7 map
+; to the nearest stable TMS9918 palette entries; raster actions follow later.
+GCOL:   CALL    EXPRI
+        EXX
+        PUSH    HL
+        CALL    COMMA
+        CALL    EXPRI
+        EXX
+        LD      A,H
+        OR      A
+        JR      NZ,GRAPHERRPOP
+        LD      A,L
+        AND     7
+        LD      E,A
+        LD      D,0
+        LD      HL,COLOURMAP
+        ADD     HL,DE
+        LD      A,(HL)
+        LD      (GRAPHCOLOUR),A
+        POP     HL
+        LD      A,H
+        OR      L
+        JR      NZ,GRAPHERR
+        JP      XEQ
+
+GRAPHERRPOP:
+        POP     HL
+GRAPHERR:
+        XOR     A
+        CALL    EXTERR
+        DEFM    'Unsupported graphics operation'
+        DEFB    0
+
+COLOURMAP:
+        DEFB    1,8,3,11,5,13,7,15
+
+; MOVE and DRAW accept BBC logical coordinates and update the graphics cursor.
+MOVE:   CALL    PARSEXY
+        JR      C,COORDERR
+MOVEPHYSICAL:
+        LD      A,B
+        LD      (GRAPHX),A
+        LD      A,C
+        LD      (GRAPHY),A
+        JP      XEQ
+
+DRAW:   CALL    PARSEXY
+        JR      C,COORDERR
+        CALL    DRAWTO
+        JP      XEQ
+
+COORDERR:
+        XOR     A
+        CALL    EXTERR
+        DEFM    'Graphics coordinate outside screen'
+        DEFB    0
+
+; PLOT 4 moves absolutely, PLOT 5 draws an absolute solid line, and PLOT 69
+; plots one absolute foreground point. Other plot modes fail explicitly.
+PLOT:   CALL    EXPRI
+        EXX
+        PUSH    HL
+        CALL    COMMA
+        CALL    PARSEXY
+        JR      C,PLOTCOORDERR
+        POP     HL
+        LD      A,H
+        OR      A
+        JP      NZ,GRAPHERR
+        LD      A,L
+        CP      4
+        JR      Z,MOVEPHYSICAL
+        CP      5
+        JR      Z,PLOTDRAW
+        CP      69
+        JP      NZ,GRAPHERR
+        LD      A,B
+        LD      (GRAPHX),A
+        LD      A,C
+        LD      (GRAPHY),A
+        CALL    DRAWPIXEL
+        JP      XEQ
+PLOTDRAW:
+        CALL    DRAWTO
+        JP      XEQ
+PLOTCOORDERR:
+        POP     HL
+        JR      COORDERR
+
+; POINT(x,y) returns the TMS9918 colour at a BBC logical coordinate, or -1
+; when the coordinate is outside the logical screen.
+POINT:  CALL    PARSEXY
+        JR      C,POINTOFF
+        CALL    READPIXEL
+        LD      E,A
+        LD      HL,COLOURMAP
+        LD      B,0
+POINTMAP:
+        LD      A,(HL)
+        CP      E
+        JR      Z,POINTMAPPED
+        INC     HL
+        INC     B
+        LD      A,B
+        CP      8
+        JR      NZ,POINTMAP
+        LD      B,0
+POINTMAPPED:
+        LD      A,B
+        LD      L,A
+        LD      H,0
+        EXX
+        XOR     A
+        LD      H,A
+        LD      L,A
+        LD      C,A
+        RET
+POINTOFF:
+        LD      HL,-1
+        EXX
+        LD      HL,-1
+        XOR     A
+        LD      C,A
+        RET
+
+; Parse two comma-separated integer expressions and scale them from the BBC
+; 1280x1024 logical grid to physical B=x (0..255), C=y (0..191).
+PARSEXY:
+        CALL    EXPRI
+        EXX
+        PUSH    HL
+        CALL    COMMA
+        CALL    EXPRI
+        EXX
+        EX      DE,HL
+        POP     HL
+        BIT     7,H
+        JR      NZ,MAPBAD
+        LD      A,H
+        CP      5
+        JR      NC,MAPBAD
+        BIT     7,D
+        JR      NZ,MAPBAD
+        LD      A,D
+        CP      4
+        JR      NC,MAPBAD
+
+        PUSH    DE
+        LD      DE,5
+        LD      C,0
+MAPX:   OR      A
+        SBC     HL,DE
+        JR      C,MAPXDONE
+        INC     C
+        JR      MAPX
+MAPXDONE:
+        LD      B,C
+        POP     DE
+
+        LD      H,D
+        LD      L,E
+        ADD     HL,HL
+        ADD     HL,DE
+        SRL     H
+        RR      L
+        SRL     H
+        RR      L
+        SRL     H
+        RR      L
+        SRL     H
+        RR      L
+        LD      A,191
+        SUB     L
+        LD      C,A
+        OR      A
+        RET
+MAPBAD: SCF
+        RET
+
+; Eight-bit Bresenham line rasterizer. All persistent values live in the
+; adapter's RAM state because BIOS VRAM calls may change working registers.
+DRAWTO: LD      A,B
+        LD      (TARGETX),A
+        LD      A,C
+        LD      (TARGETY),A
+
+        LD      A,(GRAPHX)
+        LD      D,A
+        LD      A,B
+        SUB     D
+        JR      NC,DXPOS
+        NEG
+        LD      D,0FFH
+        JR      DXSTORE
+DXPOS:  LD      D,1
+DXSTORE:
+        LD      (DELTAX),A
+        LD      A,D
+        LD      (STEPX),A
+
+        LD      A,(GRAPHY)
+        LD      D,A
+        LD      A,C
+        SUB     D
+        JR      NC,DYPOS
+        NEG
+        LD      D,0FFH
+        JR      DYSTORE
+DYPOS:  LD      D,1
+DYSTORE:
+        LD      (DELTAY),A
+        LD      A,D
+        LD      (STEPY),A
+
+        LD      A,(DELTAY)
+        LD      D,A
+        LD      A,(DELTAX)
+        CP      D
+        JR      C,YMAJOR
+
+        SRL     A
+        LD      (LINEERR),A
+XLINE:  CALL    DRAWPIXEL
+        CALL    LINEATEND
+        RET     Z
+        LD      A,(GRAPHX)
+        LD      D,A
+        LD      A,(STEPX)
+        ADD     A,D
+        LD      (GRAPHX),A
+        LD      A,(LINEERR)
+        LD      D,A
+        LD      A,(DELTAY)
+        LD      E,A
+        LD      A,D
+        SUB     E
+        JR      NC,XERRSTORE
+        LD      D,A
+        LD      A,(DELTAX)
+        ADD     A,D
+        LD      D,A
+        LD      A,(GRAPHY)
+        LD      E,A
+        LD      A,(STEPY)
+        ADD     A,E
+        LD      (GRAPHY),A
+        LD      A,D
+XERRSTORE:
+        LD      (LINEERR),A
+        JR      XLINE
+
+YMAJOR: LD      A,D
+        SRL     A
+        LD      (LINEERR),A
+YLINE:  CALL    DRAWPIXEL
+        CALL    LINEATEND
+        RET     Z
+        LD      A,(GRAPHY)
+        LD      D,A
+        LD      A,(STEPY)
+        ADD     A,D
+        LD      (GRAPHY),A
+        LD      A,(LINEERR)
+        LD      D,A
+        LD      A,(DELTAX)
+        LD      E,A
+        LD      A,D
+        SUB     E
+        JR      NC,YERRSTORE
+        LD      D,A
+        LD      A,(DELTAY)
+        ADD     A,D
+        LD      D,A
+        LD      A,(GRAPHX)
+        LD      E,A
+        LD      A,(STEPX)
+        ADD     A,E
+        LD      (GRAPHX),A
+        LD      A,D
+YERRSTORE:
+        LD      (LINEERR),A
+        JR      YLINE
+
+LINEATEND:
+        LD      A,(GRAPHX)
+        LD      D,A
+        LD      A,(TARGETX)
+        CP      D
+        RET     NZ
+        LD      A,(GRAPHY)
+        LD      D,A
+        LD      A,(TARGETY)
+        CP      D
+        RET
+
+DRAWPIXEL:
+        LD      A,(GRAPHX)
+        LD      B,A
+        LD      A,(GRAPHY)
+        LD      C,A
+        LD      A,(GRAPHCOLOUR)
+        LD      E,A
+
+; Set one physical pixel. Each touched colour cell is assigned E over black.
+SETPIXEL:
+        LD      A,E
+        PUSH    AF
+        CALL    PIXELADDRESS
+        LD      D,A
+        PUSH    HL
+        PUSH    HL
+        CALL    RDVRM
+        OR      D
+        POP     HL
+        CALL    WRTVRM
+        POP     HL
+        LD      DE,2000H
+        ADD     HL,DE
+        POP     AF
+        AND     0FH
+        RLCA
+        RLCA
+        RLCA
+        RLCA
+        OR      1
+        JP      WRTVRM
+
+; Read the foreground or background colour selected by one physical pixel.
+READPIXEL:
+        CALL    PIXELADDRESS
+        LD      D,A
+        PUSH    HL
+        CALL    RDVRM
+        AND     D
+        LD      E,0
+        JR      Z,READCOLOUR
+        INC     E
+READCOLOUR:
+        POP     HL
+        LD      BC,2000H
+        ADD     HL,BC
+        CALL    RDVRM
+        DEC     E
+        JR      NZ,READBACKGROUND
+        AND     0F0H
+        RRCA
+        RRCA
+        RRCA
+        RRCA
+        RET
+READBACKGROUND:
+        AND     0FH
+        RET
+
+; Graphics II byte address and bit mask for physical B=x, C=y. The upper five
+; Y bits select the tile row, the upper five X bits select its eight-byte
+; pattern, and the low three Y bits select the pattern scanline.
+PIXELADDRESS:
+        LD      A,B
+        AND     7
+        LD      D,A
+        LD      A,80H
+PIXELMASK:
+        DEC     D
+        BIT     7,D
+        JR      NZ,PIXELROW
+        RRCA
+        JR      PIXELMASK
+PIXELROW:
+        PUSH    AF
+        LD      A,C
+        AND     0F8H
+        LD      L,A
+        LD      H,0
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        LD      A,B
+        AND     0F8H
+        LD      E,A
+        LD      D,0
+        ADD     HL,DE
+        LD      A,C
+        AND     7
+        LD      E,A
+        LD      D,0
+        ADD     HL,DE
+        POP     AF
+        RET
+
+; Remaining optional facilities retain the imported port's explicit error.
+COLOUR:
+ENVEL:
+SOUND:
+ADVAL:
+GETIMS:
+PUTIMS:
+        XOR     A
+        CALL    EXTERR
+        DEFM    'Sorry'
+        DEFB    0
+
+FIN:    END

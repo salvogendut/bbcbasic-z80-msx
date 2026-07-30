@@ -50,14 +50,16 @@ commands follow only after the interpreter is stable.
 2. **Complete:** CP/M calls and mutable adapter state are outside the language
    core; direct core writes target the separate RAM module. A guarded runtime
    trace found zero cartridge writes in the P1 test suite.
-3. Define a RainBIOS payload descriptor and a testable transfer contract.
+3. **Complete:** define a RainBIOS payload descriptor and a testable transfer
+   contract.
 4. **Complete:** implement an MSX1 console adapter using published MSX
    interfaces and independently written code.
 5. **Complete:** boot to the BBC BASIC prompt; exercise editing, integer and
    floating-point expressions, strings, a stored program, error reporting,
    the clock, and timed keyboard input.
-6. Add MSX2 compatibility, graphics, sound, storage, and the RainBIOS launch
-   wrapper.
+6. **Graphics slice complete:** add MSX2 compatibility, sound, storage, and
+   the RainBIOS launch wrapper. The initial MSX1 Graphics II subset is tested
+   independently on C-BIOS and through RainBIOS.
 
 ## Initial memory strategy
 
@@ -73,7 +75,8 @@ initial MSX build will target:
 
 - payload ROM in page 1 (`4000h-7FFFh`);
 - aligned BBC state at `8000h-82FFh`;
-- program/dynamic memory beginning at `8300h`;
+- adapter state at `8300h-8311h` and program/dynamic memory beginning at
+  `8312h`;
 - initialized RAM in pages 2 and 3, requiring at least 32 KiB for the first
   supported profile.
 
@@ -81,8 +84,10 @@ This is now the tested P1 memory profile, not yet a broad compatibility
 guarantee. The openMSX smoke test watches the cartridge ROM, boots to a prompt,
 exercises expressions, editing, program flow, errors, time, and keyboard
 timeouts, and fails on any attempted write. The independent 1983 test confirms
-that the final ROM visibly renders the prompt. MSX2 machines and arbitrary
-user machine-code paths still require separate validation.
+that the final ROM visibly renders the prompt. A second program exercises
+Graphics II mode selection, colour selection, moves, lines, absolute plotting,
+and pixel readback. MSX2 machines and arbitrary user machine-code paths still
+require separate validation.
 
 RainBIOS and standalone cartridge entry can share the interpreter image while
 using different launch wrappers.

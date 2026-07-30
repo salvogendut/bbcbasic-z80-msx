@@ -17,6 +17,8 @@
         EXTRN   PENDVAL
         EXTRN   ESCFLAG
         EXTRN   TRAPCNT
+        EXTRN   GRAPHY
+        EXTRN   GRAPHCOLOUR
 
         GLOBAL  CLRSCN
         GLOBAL  GETCSR
@@ -79,7 +81,7 @@ OSINIT: CALL    INITXT
         CALL    KILBUF
         XOR     A
         LD      HL,PSTBASE
-        LD      B,8
+        LD      B,18
 INITCLEAR:
         LD      (HL),A
         INC     HL
@@ -87,6 +89,10 @@ INITCLEAR:
 INITDONE:
         LD      A,20
         LD      (TRAPCNT),A
+        LD      A,191
+        LD      (GRAPHY),A
+        LD      A,15
+        LD      (GRAPHCOLOUR),A
         LD      HL,PSTEND
         LD      DE,RAMTOP
         XOR     A

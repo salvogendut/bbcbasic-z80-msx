@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: BSD-3-Clause
-"""Build and verify the console-only BBC BASIC MSX cartridge ROM."""
+"""Build and verify the BBC BASIC MSX cartridge ROM."""
 
 from __future__ import annotations
 
@@ -33,13 +33,13 @@ CORE_BASE = 0x4400
 ROM_END = 0x8000
 RAM_BASE = 0x8000
 STATE_BASE = 0x8300
-STATE_END = 0x8308
+STATE_END = 0x8312
 DESCRIPTOR_ADDRESS = 0x7FF0
 EXPECTED_DESCRIPTOR = bytes.fromhex(
-    "52 42 50 31 01 10 01 07 10 40 00 80 00 F3 02 0D"
+    "52 42 50 31 01 10 01 0F 10 40 00 80 00 F3 02 05"
 )
-EXPECTED_SHA256 = "2a53b54be1f5b734f1f8f9ea075c62b1cdedab5aad516334da74f60614987bcd"
-CORE_MODULES = LANGUAGE_MODULES[:-1]
+EXPECTED_SHA256 = "5ef2f2b17709832c5a3ee59892dba806953cd0b5ec032e43df5dcd7f24f254a5"
+CORE_MODULES = LANGUAGE_MODULES[:4]
 MAP_SECTION_RE = re.compile(
     r"^(?P<address>[0-9a-fA-F]{4})\s+"
     r"(?P<length>[0-9a-fA-F]{4})\s+P\s+\S+\s+"
@@ -101,7 +101,7 @@ def validate_map(text: str) -> None:
     if ram_length != STATE_BASE - RAM_BASE:
         raise ValueError("BBC BASIC fixed RAM is not exactly 768 bytes")
     if state_length != STATE_END - STATE_BASE:
-        raise ValueError("MSX adapter state is not exactly 8 bytes")
+        raise ValueError("MSX adapter state is not exactly 18 bytes")
 
 
 def link_command(ld80: str, output_dir: pathlib.Path) -> list[str]:
@@ -119,6 +119,7 @@ def link_command(ld80: str, output_dir: pathlib.Path) -> list[str]:
         str(object_path(output_dir, "msx_console")),
         f"-P{CORE_BASE:#06x}",
         *(str(object_path(output_dir, module)) for module in CORE_MODULES),
+        str(object_path(output_dir, "msx_graphics")),
         str(object_path(output_dir, "msx_descriptor")),
         f"-P{RAM_BASE:#06x}",
         str(object_path(output_dir, "ram")),
@@ -169,6 +170,13 @@ def main() -> int:
             arguments.zmac,
             ROOT / "platform" / "msx" / "console.z80",
             object_path(output_dir, "msx_console"),
+        )
+    )
+    run(
+        assemble_command(
+            arguments.zmac,
+            ROOT / "platform" / "msx" / "graphics.z80",
+            object_path(output_dir, "msx_graphics"),
         )
     )
     run(
@@ -229,7 +237,7 @@ def main() -> int:
 
     output = output_dir / "bbcbasic_msx_console.rom"
     output.write_bytes(rom)
-    print(f"wrote console-only MSX cartridge: {output}")
+    print(f"wrote BBC BASIC MSX cartridge: {output}")
     print(f"{len(rom)} bytes, SHA-256 {digest}")
     return 0
 

@@ -7,12 +7,12 @@ MSX2 computers. The first intended consumer is
 [RainBIOS](https://github.com/salvogendut/rainbios), with a standalone
 cartridge or ROM payload as a second target.
 
-The first console milestone is bootable. It packages the unchanged language
+The first graphics milestone is bootable. It packages the unchanged language
 core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
 editing, integer and floating-point expressions, strings, stored programs,
-`TIME`, and timed `INKEY`. Storage and graphics remain future work; storage
-operations currently report `Storage unsupported`.
+`TIME`, timed `INKEY`, and an initial TMS9918 Graphics II subset. Storage
+remains future work and currently reports `Storage unsupported`.
 
 ## Repository branches
 
@@ -59,7 +59,7 @@ make msx-layout ZMAC=/path/to/zmac LD80=/path/to/ld80
 `build/msx-layout/bbcbasic_msx_layout.rom` is for address-map testing only. It
 must not be distributed or presented as a usable interpreter.
 
-Build the usable console-only cartridge with:
+Build the usable cartridge with:
 
 ```sh
 make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
@@ -67,7 +67,7 @@ make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
 
 The result is `build/msx-console/bbcbasic_msx_console.rom`: 16,384 bytes with
 SHA-256
-`2a53b54be1f5b734f1f8f9ea075c62b1cdedab5aad516334da74f60614987bcd`.
+`5ef2f2b17709832c5a3ee59892dba806953cd0b5ec032e43df5dcd7f24f254a5`.
 The build validates its link map and fails if the ROM differs.
 
 The final 16 bytes contain RainBIOS payload descriptor v1 while the ordinary
@@ -89,7 +89,16 @@ make test-msx-console-1983 \
   ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 
-Both emulator targets are optional integration checks; `make check` needs no
+The Graphics II test types and runs `examples/msx-graphics.bbc`, checks
+`MODE`, `GCOL`, `MOVE`, `DRAW`, `PLOT`, and `POINT`, and guards the cartridge
+window against writes:
+
+```sh
+make test-msx-graphics-openmsx \
+  ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+These emulator targets are optional integration checks; `make check` needs no
 assembler or emulator.
 
 The port plan and platform boundary are documented in

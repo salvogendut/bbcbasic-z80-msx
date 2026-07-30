@@ -185,6 +185,9 @@ PLOTCOORDERR:
 ; POINT(x,y) returns the TMS9918 colour at a BBC logical coordinate, or -1
 ; when the coordinate is outside the logical screen.
 POINT:  CALL    PARSEXY
+        PUSH    AF
+        CALL    BRAKET
+        POP     AF
         JR      C,POINTOFF
         CALL    READPIXEL
         LD      E,A

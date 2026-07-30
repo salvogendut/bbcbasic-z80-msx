@@ -23,7 +23,7 @@ debug watchpoint create \
     -command record_graphics_rom_write
 
 after time 4.00 {
-    type_via_keybuf "10 MODE 2\r20 GCOL 0,1\r30 MOVE 480,384:DRAW 800,384:DRAW 800,640:DRAW 480,640:DRAW 480,384\r40 GCOL 0,2\r50 MOVE 480,384:DRAW 800,640\r60 GCOL 0,4\r70 MOVE 480,640:DRAW 800,384\r80 GCOL 0,7\r90 PLOT 69,640,512\r95 P%=POINT(640,512)\r100 GOTO 100\rRUN\r"
+    type_via_keybuf "10 MODE 2\r20 GCOL 0,1\r30 MOVE 480,384:DRAW 800,384:DRAW 800,640:DRAW 480,640:DRAW 480,384\r40 GCOL 0,2\r50 MOVE 480,384:DRAW 800,640\r60 GCOL 0,4\r70 MOVE 480,640:DRAW 800,384\r80 GCOL 0,7\r90 PLOT 69,640,512\r95 P%=POINT(640,512)\r98 PLOT 69,1000,512\r100 GOTO 100\rRUN\r"
 }
 
 after time 90.00 {
@@ -60,6 +60,9 @@ after time 90.00 {
     puts $handle [
         format "POINT_RESULT=%02X,%02X,%02X,%02X" \
             [peek 0x8240] [peek 0x8241] [peek 0x8242] [peek 0x8243]
+    ]
+    puts $handle [
+        format "AFTER_POINT_PATTERN=%02X" [debug read VRAM 0x0BCF]
     ]
     close $handle
     screenshot -raw -size 320 $::graphics_screenshot

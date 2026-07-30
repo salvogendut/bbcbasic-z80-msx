@@ -38,7 +38,7 @@ independently written console adapter at `4013h-423Ah`, the unchanged core at
 descriptor v1 remains at `7FF0h-7FFFh`, fixed RAM at `8000h-82FFh`, and 34
 adapter-state bytes at `8300h-8321h`. Its 16 KiB ROM
 has SHA-256
-`14733ea4ae0b7956dfcf9ab9ec4d6f1be838ec1f6efc6da83887fb0c69a7b817`.
+`29691e2ac6498988b15ef8e80687f902ae834fd886585bcc1f753a49e0434678`.
 The build driver parses the linker map and rejects boundary overlap.
 
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking

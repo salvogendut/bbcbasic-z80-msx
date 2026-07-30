@@ -68,7 +68,7 @@ make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
 
 The result is `build/msx-console/bbcbasic_msx_console.rom`: 16,384 bytes with
 SHA-256
-`14733ea4ae0b7956dfcf9ab9ec4d6f1be838ec1f6efc6da83887fb0c69a7b817`.
+`29691e2ac6498988b15ef8e80687f902ae834fd886585bcc1f753a49e0434678`.
 The build validates its link map and fails if the ROM differs.
 
 The final 16 bytes contain RainBIOS payload descriptor v1 while the ordinary

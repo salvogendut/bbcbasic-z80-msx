@@ -18,8 +18,9 @@ def validate_report(text: str) -> dict[str, str]:
     expected = {
         "ROM_WRITES": "0",
         "VDP": "02,E0",
-        "GRAPH_STATE": "80,5F,0F",
+        "GRAPH_STATE": "C8,5F,0F",
         "POINT_RESULT": "07,00,00,00",
+        "AFTER_POINT_PATTERN": "80",
     }
     for key, value in expected.items():
         if values.get(key) != value:

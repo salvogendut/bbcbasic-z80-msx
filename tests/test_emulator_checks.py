@@ -45,8 +45,9 @@ VDP=02,E0
 PATTERN_NONZERO=500
 PATTERN=80,01,80,80,01
 COLOUR=51,31,F1,31,51
-GRAPH_STATE=80,5F,0F
+GRAPH_STATE=C8,5F,0F
 POINT_RESULT=07,00,00,00
+AFTER_POINT_PATTERN=80
 """
         validate_graphics_report(report)
         with self.assertRaisesRegex(ValueError, "reference colours"):

@@ -8,6 +8,8 @@ import unittest
 from tools.build_msx_console import (
     ADAPTER_BASE,
     CORE_BASE,
+    DESCRIPTOR_ADDRESS,
+    EXPECTED_DESCRIPTOR,
     EXPECTED_SHA256,
     RAM_BASE,
     ROM_BASE,
@@ -29,6 +31,9 @@ class MsxConsoleBuildTests(unittest.TestCase):
         self.assertEqual(RAM_BASE, 0x8000)
         self.assertEqual(STATE_BASE, 0x8300)
         self.assertEqual(STATE_END, 0x8308)
+        self.assertEqual(DESCRIPTOR_ADDRESS, 0x7FF0)
+        self.assertEqual(len(EXPECTED_DESCRIPTOR), 16)
+        self.assertEqual(sum(EXPECTED_DESCRIPTOR) & 0xFF, 0)
         if EXPECTED_SHA256:
             self.assertRegex(EXPECTED_SHA256, r"^[0-9a-f]{64}$")
 

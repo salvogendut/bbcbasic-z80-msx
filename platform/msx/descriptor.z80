@@ -1,0 +1,21 @@
+; SPDX-License-Identifier: BSD-3-Clause
+;
+; RainBIOS payload descriptor v1 at the end of the normal 16 KiB ROM.
+
+        TITLE   BBC BASIC RAINBIOS PAYLOAD DESCRIPTOR
+
+        ASEG
+        ORG     7FF0H
+
+        DEFM    'RBP1'          ;MAGIC
+        DEFB    1               ;DESCRIPTOR VERSION
+        DEFB    16              ;DESCRIPTOR LENGTH
+        DEFB    1               ;PAYLOAD TYPE: BASIC
+        DEFB    00000111B       ;CONSOLE, KEYBOARD, AND TIMING SERVICES
+        DEFW    4010H           ;ENTRY
+        DEFW    8000H           ;FIRST RAM ADDRESS
+        DEFW    0F300H          ;EXCLUSIVE RAM LIMIT
+        DEFB    2               ;TWO CONTIGUOUS 16 KIB RAM PAGES
+        DEFB    0DH             ;ADDITIVE CHECKSUM: ALL 16 BYTES SUM TO ZERO
+
+FIN:    END

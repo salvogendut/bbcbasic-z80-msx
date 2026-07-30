@@ -34,7 +34,11 @@ ROM_END = 0x8000
 RAM_BASE = 0x8000
 STATE_BASE = 0x8300
 STATE_END = 0x8308
-EXPECTED_SHA256 = "709e7a5fad4fe8faf244bbf6579adb5d7a116bf06263d80533a1254a8fca9bde"
+DESCRIPTOR_ADDRESS = 0x7FF0
+EXPECTED_DESCRIPTOR = bytes.fromhex(
+    "52 42 50 31 01 10 01 07 10 40 00 80 00 F3 02 0D"
+)
+EXPECTED_SHA256 = "2a53b54be1f5b734f1f8f9ea075c62b1cdedab5aad516334da74f60614987bcd"
 CORE_MODULES = LANGUAGE_MODULES[:-1]
 MAP_SECTION_RE = re.compile(
     r"^(?P<address>[0-9a-fA-F]{4})\s+"
@@ -115,6 +119,7 @@ def link_command(ld80: str, output_dir: pathlib.Path) -> list[str]:
         str(object_path(output_dir, "msx_console")),
         f"-P{CORE_BASE:#06x}",
         *(str(object_path(output_dir, module)) for module in CORE_MODULES),
+        str(object_path(output_dir, "msx_descriptor")),
         f"-P{RAM_BASE:#06x}",
         str(object_path(output_dir, "ram")),
         f"-P{STATE_BASE:#06x}",
@@ -173,6 +178,13 @@ def main() -> int:
             object_path(output_dir, "msx_state"),
         )
     )
+    run(
+        assemble_command(
+            arguments.zmac,
+            ROOT / "platform" / "msx" / "descriptor.z80",
+            object_path(output_dir, "msx_descriptor"),
+        )
+    )
     run(link_command(arguments.ld80, output_dir))
 
     try:
@@ -199,6 +211,13 @@ def main() -> int:
         return 1
     if rom[:2] != b"AB" or int.from_bytes(rom[2:4], "little") != 0x4010:
         print("error: invalid MSX cartridge header", file=sys.stderr)
+        return 1
+    descriptor_offset = DESCRIPTOR_ADDRESS - ROM_BASE
+    if (
+        rom[descriptor_offset : descriptor_offset + len(EXPECTED_DESCRIPTOR)]
+        != EXPECTED_DESCRIPTOR
+    ):
+        print("error: invalid RainBIOS payload descriptor", file=sys.stderr)
         return 1
     if not arguments.print_digest and digest != EXPECTED_SHA256:
         print(

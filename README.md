@@ -67,8 +67,11 @@ make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
 
 The result is `build/msx-console/bbcbasic_msx_console.rom`: 16,384 bytes with
 SHA-256
-`709e7a5fad4fe8faf244bbf6579adb5d7a116bf06263d80533a1254a8fca9bde`.
+`2a53b54be1f5b734f1f8f9ea075c62b1cdedab5aad516334da74f60614987bcd`.
 The build validates its link map and fails if the ROM differs.
+
+The final 16 bytes contain RainBIOS payload descriptor v1 while the ordinary
+MSX `AB` header and standalone cartridge entry remain unchanged.
 
 The interactive openMSX test checks the displayed results and watches the
 selected cartridge window for writes:

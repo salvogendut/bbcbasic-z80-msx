@@ -33,9 +33,10 @@ Its service routines are nonfunctional stubs.
 
 The subsequent console build keeps the cartridge veneer at `4000h`, places
 the independently written adapter at `4013h-4230h`, the unchanged core at
-`4400h-74CBh`, fixed RAM at `8000h-82FFh`, and eight adapter-state bytes at
-`8300h-8307h`. Its 16 KiB ROM has SHA-256
-`709e7a5fad4fe8faf244bbf6579adb5d7a116bf06263d80533a1254a8fca9bde`.
+`4400h-74CBh`, RainBIOS payload descriptor v1 at `7FF0h-7FFFh`, fixed RAM at
+`8000h-82FFh`, and eight adapter-state bytes at `8300h-8307h`. Its 16 KiB ROM
+has SHA-256
+`2a53b54be1f5b734f1f8f9ea075c62b1cdedab5aad516334da74f60614987bcd`.
 The build driver parses the linker map and rejects boundary overlap.
 
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking

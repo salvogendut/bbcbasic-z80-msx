@@ -4,8 +4,9 @@
 
 This directory contains independently written MSX and MSX2 platform code.
 `cartridge.z80`, `console.z80`, and `state.z80` form the bootable P1
-console adapter. `layout_stub.z80` remains only as the earlier, nonfunctional
-address-layout proof.
+console adapter. `descriptor.z80` adds the RainBIOS payload descriptor at
+`7FF0h` without changing the standard cartridge header. `layout_stub.z80`
+remains only as the earlier, nonfunctional address-layout proof.
 
 The P1 adapter provides:
 
@@ -29,6 +30,7 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | `4000h-4012h` | cartridge header and entry veneer |
 | `4013h-4230h` | console adapter |
 | `4400h-74CBh` | preserved BBC BASIC language core |
+| `7FF0h-7FFFh` | RainBIOS payload descriptor v1 |
 | `8000h-82FFh` | BBC BASIC fixed RAM |
 | `8300h-8307h` | adapter state |
 | `8308h-F2FFh` | initial program/dynamic-memory window |
@@ -36,6 +38,10 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
 MSX2 validation, graphics, sound, storage, and the RainBIOS return/launch
 contract remain later milestones.
+
+The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
+`8000h-F2FFh` RAM window, two contiguous RAM pages, and required console,
+keyboard, and timing services. Its 16-byte additive checksum is zero.
 
 `tools/openmsx_smoke.tcl` boots the ROM, edits a command with Backspace,
 exercises integer, floating-point, string, program-flow, error, clock, and

@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+/build/
+*.bin
+*.com
+*.lst
+*.map
+*.rel
+*.rom
+*.sym
+__pycache__/
+

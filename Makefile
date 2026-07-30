@@ -5,11 +5,12 @@ ZMAC ?= zmac
 LD80 ?= ld80
 BUILD_DIR ?= build
 
-.PHONY: check cpm-baseline help test toolcheck verify-provenance
+.PHONY: audit-core check cpm-baseline help test toolcheck verify-provenance
 
 help:
 	@echo "make test               Run source-layout tests"
 	@echo "make verify-provenance  Verify the preserved upstream tag and history map"
+	@echo "make audit-core         Check the interpreter/platform boundary"
 	@echo "make toolcheck          Check for the legacy CP/M build tools"
 	@echo "make cpm-baseline       Build the known ADM-3A CP/M image"
 	@echo "make check              Run all checks which do not require an assembler"
@@ -19,6 +20,9 @@ test:
 
 verify-provenance:
 	$(PYTHON) tools/verify_provenance.py
+
+audit-core:
+	$(PYTHON) tools/audit_core.py
 
 toolcheck:
 	@command -v "$(ZMAC)" >/dev/null || { echo "missing required tool: $(ZMAC)"; exit 1; }
@@ -30,4 +34,4 @@ cpm-baseline: toolcheck
 		--zmac "$(ZMAC)" --ld80 "$(LD80)" \
 		--output-dir "$(BUILD_DIR)/cpm"
 
-check: test verify-provenance
+check: test verify-provenance audit-core

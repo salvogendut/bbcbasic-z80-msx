@@ -51,6 +51,8 @@ build helper modules. The new build driver is standalone.
 The port plan and platform boundary are documented in
 [docs/PORTING.md](docs/PORTING.md) and
 [platform/msx/README.md](platform/msx/README.md).
+The static interpreter audit and its deliberately limited conclusions are in
+[docs/CORE_AUDIT.md](docs/CORE_AUDIT.md).
 
 ## Licensing
 

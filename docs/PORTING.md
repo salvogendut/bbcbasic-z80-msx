@@ -47,8 +47,10 @@ commands follow only after the interpreter is stable.
 
 1. **Complete:** reproduce and hash the CP/M image with a standalone build
    driver and recorded external tool sources.
-2. **Next:** audit the core for writes into its code area, absolute-address
-   assumptions, interrupt assumptions, and required writable memory.
+2. **Static audit complete:** CP/M calls and mutable adapter state are outside
+   the language core; direct core writes target the separate RAM module. A
+   guarded runtime write trace is still required before declaring the core
+   ROM-safe.
 3. Define a RainBIOS payload descriptor and a testable transfer contract.
 4. Implement an MSX1 console adapter using published MSX hardware behaviour
    and independently written code.
@@ -57,18 +59,32 @@ commands follow only after the interpreter is stable.
 6. Add MSX2 compatibility, storage, clock, and a standalone cartridge
    wrapper.
 
-## Memory strategy under evaluation
+## Initial memory strategy
 
-The CP/M binary expects a contiguous writable address space beginning near
-`0x0100`; an MSX ROM is not writable and MSX slot selection affects which RAM
-is visible. The safest initial design is therefore likely a ROM-resident
-payload which RainBIOS copies into a selected RAM layout before transferring
-control. The exact addresses and minimum RAM requirement will be chosen only
-after the write/relocation audit, then captured in an executable memory-map
-test.
+The relocatable language core occupies 12,492 bytes. The CP/M operating-system
+layer adds 2,081 bytes and the fixed RAM module is 768 bytes. Static analysis
+found no reserved storage, CP/M calls, or interrupt-control instructions in
+the core, and every direct write to a symbolic address targets an export from
+`ram.z80`. The only direct I/O instructions implement BBC BASIC's user-facing
+`INP` and `OUT` features.
 
-RainBIOS and standalone cartridge entry may share the interpreter image but
-use different launch wrappers.
+That makes a 16 KiB ROM-resident core and platform adapter plausible. The
+initial MSX build will target:
+
+- payload ROM in page 1 (`4000h-7FFFh`);
+- aligned BBC state at `8000h-82FFh`;
+- program/dynamic memory beginning at `8300h`;
+- initialized RAM in pages 2 and 3, requiring at least 32 KiB for the first
+  supported profile.
+
+This is a design decision for the first bring-up, not yet a compatibility
+guarantee. A runtime test must make the ROM window read-only, boot to a prompt,
+exercise expressions and editing, and fail on any attempted write. If that
+test finds an indirect write into code, the fallback is to copy the payload
+into RAM or isolate the affected data.
+
+RainBIOS and standalone cartridge entry can share the interpreter image while
+using different launch wrappers.
 
 ## Clean implementation policy
 

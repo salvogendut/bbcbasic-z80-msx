@@ -19,9 +19,11 @@ The CP/Mish build places:
 contains the CP/M-facing operating-system and file layer.
 `adm3a/boot.z80` supplies the small machine adapter.
 
-The first milestone is to reproduce this known CP/M baseline with a
-standalone, pinned toolchain. CP/Mish used `zmac` and `ld80`, but its
-`build.py` imports build helpers outside this extracted directory.
+The known CP/M baseline is reproducible through the standalone
+`tools/build_cpm_baseline.py` driver. With the recorded `zmac` and `ld80`
+sources it produces a 15,616-byte image with SHA-256
+`8f65a0a83d2231384b5a7f79035c2b97d748d238a924a116a84214c004cbe8f6`.
+The tools stay external; see `docs/TOOLCHAIN.md`.
 
 ## Platform boundary
 
@@ -43,9 +45,9 @@ commands follow only after the interpreter is stable.
 
 ## Planned milestones
 
-1. Pin or build a reproducible `zmac`/`ld80` toolchain and reproduce the
-   CP/M image.
-2. Audit the core for writes into its code area, absolute-address
+1. **Complete:** reproduce and hash the CP/M image with a standalone build
+   driver and recorded external tool sources.
+2. **Next:** audit the core for writes into its code area, absolute-address
    assumptions, interrupt assumptions, and required writable memory.
 3. Define a RainBIOS payload descriptor and a testable transfer contract.
 4. Implement an MSX1 console adapter using published MSX hardware behaviour

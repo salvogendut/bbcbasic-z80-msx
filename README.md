@@ -8,9 +8,9 @@ MSX2 computers. The first intended consumer is
 cartridge or ROM payload as a second target.
 
 The port is at the bring-up stage. There is not yet a bootable MSX binary.
-The preserved source builds as a generic CP/M program in its original
-CP/Mish environment; the MSX console, storage, memory, and startup adapters
-still have to be implemented.
+The preserved source now has a standalone, verified build for its generic
+CP/M baseline; the MSX console, storage, memory, and startup adapters still
+have to be implemented.
 
 ## Repository branches
 
@@ -32,9 +32,21 @@ make check
 ```
 
 This validates the source layout and the preserved upstream history. The
-legacy CP/M build requires `zmac` and `ld80`; `make toolcheck` reports whether
-they are installed. `build.py` is retained for provenance but depends on
-CP/Mish's build helper modules and is not yet a standalone build entry point.
+legacy CP/M build requires external `zmac` and `ld80` executables. With those
+available, reproduce the baseline with:
+
+```sh
+make cpm-baseline ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The result is `build/cpm/bbcbasic_adm3a.com`: 15,616 bytes with SHA-256
+`8f65a0a83d2231384b5a7f79035c2b97d748d238a924a116a84214c004cbe8f6`.
+The build fails if the output differs. [docs/TOOLCHAIN.md](docs/TOOLCHAIN.md)
+records the exact tool sources used for this reproduction and an important
+licensing caveat about `zmac`.
+
+The imported `build.py` is retained for provenance but depends on CP/Mish's
+build helper modules. The new build driver is standalone.
 
 The port plan and platform boundary are documented in
 [docs/PORTING.md](docs/PORTING.md) and

@@ -1,0 +1,21 @@
+; SPDX-License-Identifier: BSD-3-Clause
+;
+; Conventional MSX cartridge header for the standalone BBC BASIC payload.
+
+        TITLE   BBC BASIC MSX CARTRIDGE HEADER
+
+        EXTRN   START
+
+        ASEG
+        ORG     4000H
+
+        DEFB    'A','B'
+        DEFW    ENTRY
+        DEFW    0
+        DEFW    0
+        DEFW    0
+        DEFS    6
+
+ENTRY:  JP      START
+
+FIN:    END

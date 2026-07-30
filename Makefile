@@ -4,9 +4,16 @@ PYTHON ?= python3
 ZMAC ?= zmac
 LD80 ?= ld80
 BUILD_DIR ?= build
+OPENMSX ?= openmsx
+OPENMSX_MACHINE ?= C-BIOS_MSX1
+MSX1983 ?= ../1983/1983
+MSX1983_MODELS ?= ../1983/1983-models.conf
+MSX_CONSOLE_ROM = $(BUILD_DIR)/msx-console/bbcbasic_msx_console.rom
+OPENMSX_SMOKE_REPORT = $(BUILD_DIR)/msx-console/openmsx-smoke.txt
+MSX1983_SCREENSHOT = $(BUILD_DIR)/msx-console/1983-smoke.ppm
 
-.PHONY: audit-core check cpm-baseline help msx-layout test toolcheck \
-	verify-provenance
+.PHONY: audit-core check cpm-baseline help msx-console msx-layout test toolcheck \
+	test-msx-console-1983 test-msx-console-openmsx verify-provenance
 
 help:
 	@echo "make test               Run source-layout tests"
@@ -15,6 +22,9 @@ help:
 	@echo "make toolcheck          Check for the legacy CP/M build tools"
 	@echo "make cpm-baseline       Build the known ADM-3A CP/M image"
 	@echo "make msx-layout         Build the nonfunctional 16 KiB layout proof"
+	@echo "make msx-console        Build the console-only 16 KiB MSX cartridge"
+	@echo "make test-msx-console-openmsx  Run the guarded interactive openMSX test"
+	@echo "make test-msx-console-1983     Confirm the rendered prompt in 1983"
 	@echo "make check              Run all checks which do not require an assembler"
 
 test:
@@ -40,5 +50,24 @@ msx-layout: toolcheck
 	$(PYTHON) tools/build_msx_layout.py \
 		--zmac "$(ZMAC)" --ld80 "$(LD80)" \
 		--output-dir "$(BUILD_DIR)/msx-layout"
+
+msx-console: toolcheck
+	$(PYTHON) tools/build_msx_console.py \
+		--zmac "$(ZMAC)" --ld80 "$(LD80)" \
+		--output-dir "$(BUILD_DIR)/msx-console"
+
+test-msx-console-openmsx: msx-console
+	$(OPENMSX) -machine "$(OPENMSX_MACHINE)" \
+		-cart "$(abspath $(MSX_CONSOLE_ROM))" -romtype Normal \
+		-command "set smoke_output {$(abspath $(OPENMSX_SMOKE_REPORT))}" \
+		-script "$(abspath tools/openmsx_smoke.tcl)"
+	$(PYTHON) tools/check_openmsx_smoke.py "$(OPENMSX_SMOKE_REPORT)"
+
+test-msx-console-1983: msx-console
+	$(MSX1983) --config /dev/null --models "$(MSX1983_MODELS)" \
+		--model msx1 --region ntsc --cart "$(MSX_CONSOLE_ROM)" \
+		--headless --unthrottled --exit-after 240 --dump-state \
+		--screenshot "$(MSX1983_SCREENSHOT)"
+	$(PYTHON) tools/check_1983_screenshot.py "$(MSX1983_SCREENSHOT)"
 
 check: test verify-provenance audit-core

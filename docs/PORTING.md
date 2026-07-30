@@ -47,16 +47,16 @@ commands follow only after the interpreter is stable.
 
 1. **Complete:** reproduce and hash the CP/M image with a standalone build
    driver and recorded external tool sources.
-2. **Static audit complete:** CP/M calls and mutable adapter state are outside
-   the language core; direct core writes target the separate RAM module. A
-   guarded runtime write trace is still required before declaring the core
-   ROM-safe.
+2. **Complete:** CP/M calls and mutable adapter state are outside the language
+   core; direct core writes target the separate RAM module. A guarded runtime
+   trace found zero cartridge writes in the P1 test suite.
 3. Define a RainBIOS payload descriptor and a testable transfer contract.
-4. Implement an MSX1 console adapter using published MSX hardware behaviour
-   and independently written code.
-5. Boot to the BBC BASIC prompt, exercise editing, integer and floating-point
-   expressions, and run a bundled example.
-6. Add MSX2 compatibility, storage, clock, and a standalone cartridge
+4. **Complete:** implement an MSX1 console adapter using published MSX
+   interfaces and independently written code.
+5. **Complete:** boot to the BBC BASIC prompt; exercise editing, integer and
+   floating-point expressions, strings, a stored program, error reporting,
+   the clock, and timed keyboard input.
+6. Add MSX2 compatibility, graphics, sound, storage, and the RainBIOS launch
    wrapper.
 
 ## Initial memory strategy
@@ -77,11 +77,12 @@ initial MSX build will target:
 - initialized RAM in pages 2 and 3, requiring at least 32 KiB for the first
   supported profile.
 
-This is a design decision for the first bring-up, not yet a compatibility
-guarantee. A runtime test must make the ROM window read-only, boot to a prompt,
-exercise expressions and editing, and fail on any attempted write. If that
-test finds an indirect write into code, the fallback is to copy the payload
-into RAM or isolate the affected data.
+This is now the tested P1 memory profile, not yet a broad compatibility
+guarantee. The openMSX smoke test watches the cartridge ROM, boots to a prompt,
+exercises expressions, editing, program flow, errors, time, and keyboard
+timeouts, and fails on any attempted write. The independent 1983 test confirms
+that the final ROM visibly renders the prompt. MSX2 machines and arbitrary
+user machine-code paths still require separate validation.
 
 RainBIOS and standalone cartridge entry can share the interpreter image while
 using different launch wrappers.

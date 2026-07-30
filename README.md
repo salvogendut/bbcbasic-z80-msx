@@ -7,12 +7,12 @@ MSX2 computers. The first intended consumer is
 [RainBIOS](https://github.com/salvogendut/rainbios), with a standalone
 cartridge or ROM payload as a second target.
 
-The port is at the bring-up stage. There is not yet a bootable MSX binary.
-The preserved source now has a standalone, verified build for its generic
-CP/M baseline; the MSX console, storage, memory, and startup adapters still
-have to be implemented. A deterministic 16 KiB MSX link-layout artifact now
-proves the proposed ROM and RAM addresses, but its adapter is deliberately
-nonfunctional.
+The first console milestone is bootable. It packages the unchanged language
+core with an independently written MSX adapter in a deterministic 16 KiB
+cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
+editing, integer and floating-point expressions, strings, stored programs,
+`TIME`, and timed `INKEY`. Storage and graphics remain future work; storage
+operations currently report `Storage unsupported`.
 
 ## Repository branches
 
@@ -59,11 +59,42 @@ make msx-layout ZMAC=/path/to/zmac LD80=/path/to/ld80
 `build/msx-layout/bbcbasic_msx_layout.rom` is for address-map testing only. It
 must not be distributed or presented as a usable interpreter.
 
+Build the usable console-only cartridge with:
+
+```sh
+make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The result is `build/msx-console/bbcbasic_msx_console.rom`: 16,384 bytes with
+SHA-256
+`709e7a5fad4fe8faf244bbf6579adb5d7a116bf06263d80533a1254a8fca9bde`.
+The build validates its link map and fails if the ROM differs.
+
+The interactive openMSX test checks the displayed results and watches the
+selected cartridge window for writes:
+
+```sh
+make test-msx-console-openmsx \
+  ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+Use a normal 16 KiB mapper (`-romtype Normal`) if launching the ROM manually.
+The independent rendering check in the sibling 1983 emulator is:
+
+```sh
+make test-msx-console-1983 \
+  ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+Both emulator targets are optional integration checks; `make check` needs no
+assembler or emulator.
+
 The port plan and platform boundary are documented in
 [docs/PORTING.md](docs/PORTING.md) and
 [platform/msx/README.md](platform/msx/README.md).
 The static interpreter audit and its deliberately limited conclusions are in
-[docs/CORE_AUDIT.md](docs/CORE_AUDIT.md).
+[docs/CORE_AUDIT.md](docs/CORE_AUDIT.md). Public compatibility references are
+recorded in [docs/REFERENCES.md](docs/REFERENCES.md).
 
 ## Licensing
 

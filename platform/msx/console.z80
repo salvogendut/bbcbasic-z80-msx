@@ -1,0 +1,454 @@
+; SPDX-License-Identifier: BSD-3-Clause
+;
+; Console-only MSX platform adapter for BBC BASIC (Z80).
+;
+; This adapter calls only published MSX BIOS entry points and work-area
+; variables. It contains no MSX BIOS implementation code.
+
+        TITLE   BBC BASIC MSX CONSOLE ADAPTER
+
+        EXTRN   START
+        EXTRN   ESCAPE
+        EXTRN   EXTERR
+        EXTRN   PSTBASE
+        EXTRN   PSTEND
+        EXTRN   TIMEOFF
+        EXTRN   PENDKEY
+        EXTRN   PENDVAL
+        EXTRN   ESCFLAG
+        EXTRN   TRAPCNT
+
+        GLOBAL  CLRSCN
+        GLOBAL  GETCSR
+        GLOBAL  GETEXT
+        GLOBAL  GETIME
+        GLOBAL  GETPTR
+        GLOBAL  LTRAP
+        GLOBAL  OSBGET
+        GLOBAL  OSBPUT
+        GLOBAL  OSCALL
+        GLOBAL  OSCLI
+        GLOBAL  OSINIT
+        GLOBAL  OSKEY
+        GLOBAL  OSLINE
+        GLOBAL  OSLOAD
+        GLOBAL  OSOPEN
+        GLOBAL  OSRDCH
+        GLOBAL  OSSAVE
+        GLOBAL  OSSHUT
+        GLOBAL  OSSTAT
+        GLOBAL  OSWRCH
+        GLOBAL  PROMPT
+        GLOBAL  PUTCSR
+        GLOBAL  PUTIME
+        GLOBAL  PUTPTR
+        GLOBAL  RESET
+        GLOBAL  TRAP
+
+; Published MSX BIOS entry points.
+INITXT  EQU     006CH
+CHSNS   EQU     009CH
+CHGET   EQU     009FH
+CHPUT   EQU     00A2H
+CLS     EQU     00C3H
+POSIT   EQU     00C6H
+ERAFNK  EQU     00CCH
+KILBUF  EQU     0156H
+
+; Published MSX ROM metadata and system work area.
+BASRVN  EQU     002BH           ;BIT 7: 0=60 HZ, 1=50 HZ
+CSRY    EQU     0F3DCH          ;ONE-BASED CURSOR ROW
+CSRX    EQU     0F3DDH          ;ONE-BASED CURSOR COLUMN
+JIFFY   EQU     0FC9EH          ;16-BIT VDP INTERRUPT COUNTER
+
+CR      EQU     0DH
+LF      EQU     0AH
+ESC     EQU     1BH
+BS      EQU     08H
+BEL     EQU     07H
+DEL     EQU     7FH
+
+RAMTOP  EQU     0F300H          ;BELOW THE STANDARD F380H WORK AREA
+
+; Initialise a conservative 40-column text console and private adapter state.
+; Output: HL = first byte available to the BASIC program
+;         DE = top of BASIC RAM / initial stack pointer
+;         Z set, so the core does not attempt an automatic CHAIN.
+OSINIT: CALL    INITXT
+        CALL    ERAFNK
+        CALL    KILBUF
+        XOR     A
+        LD      HL,PSTBASE
+        LD      B,8
+INITCLEAR:
+        LD      (HL),A
+        INC     HL
+        DJNZ    INITCLEAR
+INITDONE:
+        LD      A,20
+        LD      (TRAPCNT),A
+        LD      HL,PSTEND
+        LD      DE,RAMTOP
+        XOR     A
+        RET
+
+; Read/edit a CR-terminated line in the page-aligned buffer at HL. The first
+; milestone supports printable characters, Backspace/Delete, Ctrl-U and Escape.
+OSLINE: LD      L,0
+LINEKEY:
+        CALL    WAITKEY
+        CP      ESC
+        JP      Z,ESCAPE
+        CP      CR
+        JR      Z,LINEEND
+        CP      BS
+        JR      Z,LINEBACK
+        CP      DEL
+        JR      Z,LINEBACK
+        CP      15H             ;CTRL-U: DELETE THE WHOLE LINE
+        JR      Z,LINECLEAR
+        CP      ' '
+        JR      C,LINEKEY
+        LD      C,A
+        LD      A,L
+        CP      0FFH            ;RESERVE THE LAST BYTE FOR CR
+        JR      Z,LINEFULL
+        LD      A,C
+        LD      (HL),A
+        INC     L
+        CALL    OSWRCH
+        JR      LINEKEY
+LINEFULL:
+        LD      A,BEL
+        CALL    OSWRCH
+        JR      LINEKEY
+LINEBACK:
+        LD      A,L
+        OR      A
+        JR      Z,LINEKEY
+        DEC     L
+        LD      A,BS
+        CALL    OSWRCH
+        LD      A,' '
+        CALL    OSWRCH
+        LD      A,BS
+        CALL    OSWRCH
+        JR      LINEKEY
+LINECLEAR:
+        LD      A,L
+        OR      A
+        JR      Z,LINEKEY
+        DEC     L
+        LD      A,BS
+        CALL    OSWRCH
+        LD      A,' '
+        CALL    OSWRCH
+        LD      A,BS
+        CALL    OSWRCH
+        JR      LINECLEAR
+LINEEND:
+        LD      (HL),CR
+        LD      A,CR
+        CALL    OSWRCH
+        LD      A,LF
+        CALL    OSWRCH
+        XOR     A
+        RET
+
+; Blocking character input, with one-byte pushback used by TRAP.
+OSRDCH:
+WAITKEY:
+        LD      A,(PENDVAL)
+        OR      A
+        JR      Z,WAITBIOS
+        XOR     A
+        LD      (PENDVAL),A
+        LD      A,(PENDKEY)
+        RET
+WAITBIOS:
+        JP      CHGET
+
+; Non-blocking character input helper.
+; Output: carry set and A=character, or carry reset if no character is ready.
+TRYKEY: LD      A,(PENDVAL)
+        OR      A
+        JR      Z,TRYBIOS
+        XOR     A
+        LD      (PENDVAL),A
+        LD      A,(PENDKEY)
+        SCF
+        RET
+TRYBIOS:
+        CALL    CHSNS
+        JR      Z,NOKEY
+        CALL    CHGET
+        SCF
+        RET
+NOKEY: OR      A
+        RET
+
+; Read a key with an HL-centisecond timeout.
+; Output: carry set and A=character, or carry reset and A=0 on timeout.
+; BC and DE are preserved, matching the imported platform contract.
+OSKEY:  PUSH    BC
+        PUSH    DE
+        CALL    CENTSTOTICKS
+        LD      A,B
+        OR      C
+        JR      Z,KEYONCE
+        LD      DE,(JIFFY)
+KEYPOLL:
+        CALL    TRYKEY
+        JR      C,KEYGOT
+        LD      HL,(JIFFY)
+        OR      A
+        SBC     HL,DE
+        OR      A
+        SBC     HL,BC
+        JR      C,KEYPOLL
+KEYNONE:
+        POP     DE
+        POP     BC
+        XOR     A
+        RET
+KEYONCE:
+        CALL    TRYKEY
+        JR      NC,KEYNONE
+KEYGOT:
+        CP      ESC
+        JR      NZ,KEYRETURN
+        LD      (ESCFLAG),A
+KEYRETURN:
+        POP     DE
+        POP     BC
+        SCF
+        RET
+
+; Convert centiseconds in HL to the number of local VDP ticks in BC, rounded
+; up. BASRVN bit 7 identifies 50 Hz versus 60 Hz machines.
+CENTSTOTICKS:
+        LD      A,(BASRVN)
+        OR      A
+        JP      M,CENTS50
+        LD      BC,0
+        LD      DE,-5
+CENTS60:
+        LD      A,H
+        OR      A
+        JR      NZ,CENTS5
+        LD      A,L
+        CP      5
+        JR      C,CENTSREM
+CENTS5:
+        ADD     HL,DE
+        INC     BC
+        INC     BC
+        INC     BC
+        JR      CENTS60
+CENTSREM:
+        LD      A,L
+        OR      A
+        RET     Z
+        INC     BC
+        CP      3
+        RET     C
+        INC     BC
+        RET
+CENTS50:
+        LD      B,H
+        LD      C,L
+        SRL     B
+        RR      C
+        RET     NC
+        INC     BC
+        RET
+
+; Console output preserves every register and the input flags.
+OSWRCH: PUSH    AF
+        PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        CALL    CHPUT
+        POP     HL
+        POP     DE
+        POP     BC
+        POP     AF
+        RET
+
+PROMPT: LD      A,'>'
+        JP      OSWRCH
+
+CLRSCN: XOR     A               ;CLS REQUIRES Z SET
+        JP      CLS
+
+; BBC BASIC cursor coordinates are zero-based 16-bit values. MSX stores them
+; as one-based bytes.
+GETCSR: LD      A,(CSRX)
+        DEC     A
+        LD      E,A
+        LD      D,0
+        LD      A,(CSRY)
+        DEC     A
+        LD      L,A
+        LD      H,0
+        RET
+
+PUTCSR: LD      H,E             ;POSIT: H=X, L=Y
+        INC     H
+        INC     L
+        JP      POSIT
+
+; Return the 16-bit BIOS tick counter as centiseconds in DE:HL. This first
+; implementation wraps when JIFFY wraps, but honours both standard frequencies.
+BASETIME:
+        LD      A,(BASRVN)
+        OR      A
+        JP      M,TIME50
+
+; 60 Hz: floor(JIFFY * 5 / 3), using a 16-step unsigned division.
+        LD      DE,(JIFFY)
+        LD      HL,0
+        XOR     A               ;DIVISION REMAINDER
+        LD      C,16
+TIME60DIV:
+        SLA     E
+        RL      D
+        RLA
+        ADD     HL,HL
+        CP      3
+        JR      C,TIME60NEXT
+        SUB     3
+        INC     L
+TIME60NEXT:
+        DEC     C
+        JR      NZ,TIME60DIV
+        LD      B,H
+        LD      C,L             ;BC = QUOTIENT
+        PUSH    AF              ;SAVE REMAINDER
+        LD      DE,0
+        ADD     HL,HL
+        RL      E
+        RL      D
+        ADD     HL,HL
+        RL      E
+        RL      D               ;DE:HL = QUOTIENT * 4
+        ADD     HL,BC
+        JR      NC,TIME60REM
+        INC     DE              ;DE:HL = QUOTIENT * 5
+TIME60REM:
+        POP     AF
+        OR      A
+        RET     Z
+        CP      1
+        LD      A,1
+        JR      Z,TIME60ADD
+        LD      A,3
+TIME60ADD:
+        ADD     A,L
+        LD      L,A
+        RET     NC
+        INC     H
+        RET     NZ
+        INC     DE
+        RET
+
+; 50 Hz: JIFFY * 2.
+TIME50: LD      HL,(JIFFY)
+        LD      DE,0
+        ADD     HL,HL
+        RL      E
+        RL      D
+        RET
+
+GETIME: CALL    BASETIME
+        LD      BC,(TIMEOFF)
+        ADD     HL,BC
+        EX      DE,HL
+        LD      BC,(TIMEOFF+2)
+        ADC     HL,BC
+        EX      DE,HL
+        RET
+
+; Store an offset so subsequent GETIME calls produce the requested DE:HL.
+PUTIME: PUSH    DE              ;REQUESTED HIGH WORD
+        PUSH    HL              ;REQUESTED LOW WORD
+        CALL    BASETIME
+        LD      B,H
+        LD      C,L             ;BC = CURRENT LOW WORD
+        EX      DE,HL           ;HL = CURRENT HIGH WORD
+        EX      (SP),HL         ;HL = REQUESTED LOW, STACK = CURRENT HIGH
+        OR      A
+        SBC     HL,BC
+        LD      (TIMEOFF),HL
+        POP     HL              ;CURRENT HIGH WORD
+        POP     DE              ;REQUESTED HIGH WORD
+        EX      DE,HL           ;HL = REQUESTED HIGH, DE = CURRENT HIGH
+        SBC     HL,DE
+        LD      (TIMEOFF+2),HL
+        RET
+
+; Poll for Escape every twentieth TRAP call without losing ordinary input.
+TRAP:   LD      HL,TRAPCNT
+        DEC     (HL)
+        JR      NZ,LTRAP
+        LD      (HL),20
+        LD      A,(PENDVAL)
+        OR      A
+        JR      NZ,LTRAP
+        CALL    CHSNS
+        JR      Z,LTRAP
+        CALL    CHGET
+        CP      ESC
+        JR      Z,SETESC
+        LD      (PENDKEY),A
+        LD      A,1
+        LD      (PENDVAL),A
+        JR      LTRAP
+SETESC: LD      (ESCFLAG),A
+
+LTRAP:  LD      A,(ESCFLAG)
+        OR      A
+        RET     Z
+        XOR     A
+        LD      (ESCFLAG),A
+        JP      ESCAPE
+
+; No platform-specific &FFxx call interception is supplied in P1.
+OSCALL:
+OSSHUT:
+        RET
+
+; OPEN follows the BBC platform convention and reports failure with channel 0.
+OSOPEN: XOR     A
+        RET
+
+; An empty star command is harmless. Other storage/OS operations fail with a
+; clear BBC BASIC error instead of silently pretending to work.
+OSCLI:  LD      A,(HL)
+        CP      CR
+        RET     Z
+UNSUPPORTED:
+        LD      A,200
+        CALL    EXTERR
+        DEFM    'Storage unsupported'
+        DEFB    0
+
+OSBGET:
+OSBPUT:
+OSLOAD:
+OSSAVE:
+OSSTAT:
+GETEXT:
+GETPTR:
+PUTPTR:
+        JR      UNSUPPORTED
+
+; Reset transient console state after an error. RESET is called by the core
+; and must return; it is not a request to restart the interpreter.
+RESET:  XOR     A
+        LD      (PENDVAL),A
+        LD      (ESCFLAG),A
+        CALL    KILBUF
+        RET
+
+FIN:    END

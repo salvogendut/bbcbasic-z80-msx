@@ -31,6 +31,13 @@ module occupies `8000h-82FFh`. The resulting 16 KiB layout ROM has SHA-256
 `b92d38754db7451e3e14acd0c1ae05efea2c50c99a2b920ee36e35bfc906be11`.
 Its service routines are nonfunctional stubs.
 
+The subsequent console build keeps the cartridge veneer at `4000h`, places
+the independently written adapter at `4013h-4230h`, the unchanged core at
+`4400h-74CBh`, fixed RAM at `8000h-82FFh`, and eight adapter-state bytes at
+`8300h-8307h`. Its 16 KiB ROM has SHA-256
+`709e7a5fad4fe8faf244bbf6579adb5d7a116bf06263d80533a1254a8fca9bde`.
+The build driver parses the linker map and rejects boundary overlap.
+
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking
 the module at `8000h` satisfies that requirement and places the first user
 byte at `8300h`.
@@ -74,10 +81,19 @@ Keep the relocatable language core in ROM and place all interpreter state and
 user memory in RAM for the first MSX experiment. Replace the CP/M layer rather
 than linking `cmos.z80` unchanged.
 
-Before this becomes the committed payload format, an emulator test must:
+The openMSX integration test now:
 
-1. map the candidate core range read-only;
-2. record every attempted write to that range;
-3. boot to the prompt and execute representative integer, floating-point,
-   string, editing, error, and program-flow cases;
-4. verify the three required page alignments and stack bounds.
+1. watches `4000h-7FFFh` whenever the cartridge is selected;
+2. boots to the prompt and executes integer, floating-point, string, editing,
+   program-flow, unsupported-storage, clock, and timed-input cases;
+3. requires zero attempted ROM writes and validates the resulting screen
+   text.
+
+The separate 1983 test renders the final ROM and requires the MSX blue console
+plus enough white pixels for the BBC BASIC banner and prompt. Together these
+tests establish ROM safety for the exercised P1 paths, not for arbitrary
+machine code invoked by `CALL`, `USR`, `INP`, `OUT`, or `OSCALL`.
+
+The three page alignments and stack bound are fixed by the link map and
+`OSINIT`: `ACCS=8000h`, `BUFFER=8100h`, `STAVAR=8200h`, user RAM begins at
+`8308h`, and the initial stack/top-of-memory value is `F300h`.

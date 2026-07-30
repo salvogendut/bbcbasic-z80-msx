@@ -3,10 +3,11 @@
 # MSX platform adapter
 
 This directory contains independently written MSX and MSX2 platform code.
-`cartridge.z80`, `console.z80`, `graphics.z80`, and `state.z80` form the
-bootable P1 adapter. `descriptor.z80` adds the RainBIOS payload descriptor at
-`7FF0h` without changing the standard cartridge header. `layout_stub.z80`
-remains only as the earlier, nonfunctional address-layout proof.
+`cartridge.z80`, `console.z80`, `graphics.z80`, `storage.z80`, and
+`state.z80` form the bootable P1 adapter. `descriptor.z80` adds the RainBIOS
+payload descriptor at `7FF0h` without changing the standard cartridge header.
+`layout_stub.z80` remains only as the earlier, nonfunctional address-layout
+proof.
 
 The P1 adapter provides:
 
@@ -20,8 +21,10 @@ The P1 adapter provides:
 - Escape polling without consuming ordinary pending keys;
 - Graphics II `MODE 2`, text `MODE 7`, `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
   absolute `PLOT` modes 4, 5, and 69, and `POINT(x,y)`;
-- an explicit `Storage unsupported` error for unimplemented file and OS
-  operations.
+- sequential cassette program `SAVE` and `LOAD`, with case-insensitive
+  six-character names and the standard MSX binary-tape envelope;
+- an explicit `Storage unsupported` error for random-access channels and
+  remaining file/OS operations.
 
 It calls only published MSX BIOS entries and published work-area variables.
 The standalone build currently requires an MSX1-compatible BIOS, at least
@@ -33,19 +36,20 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | `4013h-423Ah` | console adapter |
 | `4400h-74C1h` | preserved BBC BASIC language core |
 | `74C2h-77AAh` | Graphics II adapter and remaining explicit stubs |
+| `77ABh-794Eh` | cassette program storage adapter |
 | `7FF0h-7FFFh` | RainBIOS payload descriptor v1 |
 | `8000h-82FFh` | BBC BASIC fixed RAM |
-| `8300h-8311h` | adapter state |
-| `8312h-F2FFh` | initial program/dynamic-memory window |
+| `8300h-8321h` | adapter state and cassette scratch data |
+| `8322h-F2FFh` | initial program/dynamic-memory window |
 
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
-MSX2 validation, sound, storage, and a RainBIOS return contract remain later
-milestones.
+MSX2 validation, sound, random-access storage, and a RainBIOS return contract
+remain later milestones.
 
 The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
 `8000h-F2FFh` RAM window, two contiguous RAM pages, and required console,
-keyboard, timing, and graphics services. Its 16-byte additive checksum is
-zero.
+keyboard, timing, graphics, and cassette services. Its 16-byte additive
+checksum is zero.
 
 BBC logical coordinates use `0..1279` by `0..1023` with the origin at bottom
 left and are scaled to the 256 by 192 display. Logical colours 0 through 7
@@ -63,6 +67,13 @@ actually rendered, avoiding reliance on openMSX's raw screenshot path.
 `tools/openmsx_graphics.tcl` runs `examples/msx-graphics.bbc`, verifies
 reference pixels and colours, checks `POINT()` result 7, captures the
 Graphics II screen, and retains the same ROM-write guard.
+
+Program tapes contain a long-leader header block (`D0h` repeated ten times
+plus a padded six-byte name) and a short-leader data block (start, inclusive
+end, zero execute address, and tokenized program bytes). `LOAD` uses the
+caller's destination and validates the metadata length against available RAM.
+`OPEN`, `BGET`, `BPUT`, `PTR`, and `EXT#` are deliberately not implemented by
+this sequential milestone.
 
 The adapter must be based on published MSX behaviour and original code. It
 must not contain code or data copied from a proprietary MSX BIOS, BASIC ROM,

@@ -34,15 +34,16 @@ Its service routines are nonfunctional stubs.
 The subsequent MSX build keeps the cartridge veneer at `4000h`, places the
 independently written console adapter at `4013h-423Ah`, the unchanged core at
 `4400h-74C1h`, and the independently written graphics adapter at
-`74C2h-77AAh`. RainBIOS payload descriptor v1 remains at `7FF0h-7FFFh`, fixed
-RAM at `8000h-82FFh`, and 18 adapter-state bytes at `8300h-8311h`. Its 16 KiB ROM
+`74C2h-77AAh`, followed by cassette storage at `77ABh-794Eh`. RainBIOS payload
+descriptor v1 remains at `7FF0h-7FFFh`, fixed RAM at `8000h-82FFh`, and 34
+adapter-state bytes at `8300h-8321h`. Its 16 KiB ROM
 has SHA-256
-`5ef2f2b17709832c5a3ee59892dba806953cd0b5ec032e43df5dcd7f24f254a5`.
+`14733ea4ae0b7956dfcf9ab9ec4d6f1be838ec1f6efc6da83887fb0c69a7b817`.
 The build driver parses the linker map and rejects boundary overlap.
 
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking
 the module at `8000h` satisfies that requirement. The platform state follows
-the fixed RAM, so `OSINIT` exposes the first user byte at `8312h`.
+the fixed RAM, so `OSINIT` exposes the first user byte at `8322h`.
 
 ## Platform interface
 
@@ -57,8 +58,9 @@ OSOPEN  OSRDCH  OSSAVE  OSSHUT  OSSTAT  OSWRCH PROMPT
 PUTCSR  PUTIME  PUTPTR  RESET   TRAP
 ```
 
-Console-only bring-up can implement storage calls as explicit unsupported
-errors, but all symbols must have documented flag and register behaviour.
+The cassette slice implements `OSLOAD` and `OSSAVE`; remaining channel and
+random-access calls retain explicit unsupported errors. All symbols have
+documented flag and register behaviour.
 
 ## Static findings
 
@@ -88,7 +90,7 @@ The openMSX integration test now:
 
 1. watches `4000h-7FFFh` whenever the cartridge is selected;
 2. boots to the prompt and executes integer, floating-point, string, editing,
-   program-flow, unsupported-storage, clock, and timed-input cases;
+   program-flow, unsupported channel-storage, clock, and timed-input cases;
 3. requires zero attempted ROM writes and validates the resulting screen
    text.
 
@@ -105,4 +107,4 @@ checks the rendered multicolour frame.
 
 The three page alignments and stack bound are fixed by the link map and
 `OSINIT`: `ACCS=8000h`, `BUFFER=8100h`, `STAVAR=8200h`, user RAM begins at
-`8312h`, and the initial stack/top-of-memory value is `F300h`.
+`8322h`, and the initial stack/top-of-memory value is `F300h`.

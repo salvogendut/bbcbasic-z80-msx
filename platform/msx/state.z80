@@ -21,6 +21,10 @@
         GLOBAL  STEPX
         GLOBAL  STEPY
         GLOBAL  LINEERR
+        GLOBAL  TAPENAME
+        GLOBAL  TAPEMETA
+        GLOBAL  TAPEADDRESS
+        GLOBAL  TAPECOUNT
 
 PSTBASE:
 TIMEOFF:        DEFS    4
@@ -38,6 +42,10 @@ DELTAY:         DEFS    1
 STEPX:          DEFS    1
 STEPY:          DEFS    1
 LINEERR:        DEFS    1
+TAPENAME:       DEFS    6
+TAPEMETA:       DEFS    6
+TAPEADDRESS:    DEFS    2
+TAPECOUNT:      DEFS    2
 PSTEND:
 
 FIN:    END

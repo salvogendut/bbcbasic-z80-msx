@@ -33,12 +33,12 @@ CORE_BASE = 0x4400
 ROM_END = 0x8000
 RAM_BASE = 0x8000
 STATE_BASE = 0x8300
-STATE_END = 0x8312
+STATE_END = 0x8322
 DESCRIPTOR_ADDRESS = 0x7FF0
 EXPECTED_DESCRIPTOR = bytes.fromhex(
-    "52 42 50 31 01 10 01 0F 10 40 00 80 00 F3 02 05"
+    "52 42 50 31 01 10 01 1F 10 40 00 80 00 F3 02 F5"
 )
-EXPECTED_SHA256 = "5ef2f2b17709832c5a3ee59892dba806953cd0b5ec032e43df5dcd7f24f254a5"
+EXPECTED_SHA256 = "14733ea4ae0b7956dfcf9ab9ec4d6f1be838ec1f6efc6da83887fb0c69a7b817"
 CORE_MODULES = LANGUAGE_MODULES[:4]
 MAP_SECTION_RE = re.compile(
     r"^(?P<address>[0-9a-fA-F]{4})\s+"
@@ -92,16 +92,19 @@ def validate_map(text: str) -> None:
         if ROM_BASE <= address < ROM_END
     ]
     if not rom_sections or any(
-        address + length > ROM_END for address, length, _ in rom_sections
+        address + length > DESCRIPTOR_ADDRESS
+        for address, length, _ in rom_sections
     ):
-        raise ValueError("a linked code section escapes the cartridge ROM window")
+        raise ValueError("a linked code section overlaps the payload descriptor")
 
     ram_length, _ = by_address[RAM_BASE]
     state_length, _ = by_address[STATE_BASE]
     if ram_length != STATE_BASE - RAM_BASE:
         raise ValueError("BBC BASIC fixed RAM is not exactly 768 bytes")
     if state_length != STATE_END - STATE_BASE:
-        raise ValueError("MSX adapter state is not exactly 18 bytes")
+        raise ValueError(
+            f"MSX adapter state is not exactly {STATE_END - STATE_BASE} bytes"
+        )
 
 
 def link_command(ld80: str, output_dir: pathlib.Path) -> list[str]:
@@ -120,6 +123,7 @@ def link_command(ld80: str, output_dir: pathlib.Path) -> list[str]:
         f"-P{CORE_BASE:#06x}",
         *(str(object_path(output_dir, module)) for module in CORE_MODULES),
         str(object_path(output_dir, "msx_graphics")),
+        str(object_path(output_dir, "msx_storage")),
         str(object_path(output_dir, "msx_descriptor")),
         f"-P{RAM_BASE:#06x}",
         str(object_path(output_dir, "ram")),
@@ -177,6 +181,13 @@ def main() -> int:
             arguments.zmac,
             ROOT / "platform" / "msx" / "graphics.z80",
             object_path(output_dir, "msx_graphics"),
+        )
+    )
+    run(
+        assemble_command(
+            arguments.zmac,
+            ROOT / "platform" / "msx" / "storage.z80",
+            object_path(output_dir, "msx_storage"),
         )
     )
     run(

@@ -11,11 +11,11 @@
         DEFB    1               ;DESCRIPTOR VERSION
         DEFB    16              ;DESCRIPTOR LENGTH
         DEFB    1               ;PAYLOAD TYPE: BASIC
-        DEFB    00001111B       ;CONSOLE, KEYBOARD, TIMING, AND GRAPHICS
+        DEFB    00011111B       ;ALSO REQUIRES CASSETTE SERVICES
         DEFW    4010H           ;ENTRY
         DEFW    8000H           ;FIRST RAM ADDRESS
         DEFW    0F300H          ;EXCLUSIVE RAM LIMIT
         DEFB    2               ;TWO CONTIGUOUS 16 KIB RAM PAGES
-        DEFB    05H             ;ADDITIVE CHECKSUM: ALL 16 BYTES SUM TO ZERO
+        DEFB    0F5H            ;ADDITIVE CHECKSUM: ALL 16 BYTES SUM TO ZERO
 
 FIN:    END

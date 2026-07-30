@@ -1,0 +1,272 @@
+; SPDX-License-Identifier: BSD-3-Clause
+;
+; Sequential cassette program storage for BBC BASIC on MSX.
+;
+; The format is the public MSX binary-tape envelope: a long-leader block
+; containing ten D0h bytes and a six-character name, followed by a
+; short-leader block containing start/end/execute metadata and the program.
+
+        TITLE   BBC BASIC MSX CASSETTE STORAGE
+
+        EXTRN   EXTERR
+        EXTRN   TAPENAME
+        EXTRN   TAPEMETA
+        EXTRN   TAPEADDRESS
+        EXTRN   TAPECOUNT
+
+        GLOBAL  OSLOAD
+        GLOBAL  OSSAVE
+
+; Published MSX BIOS entry points.
+TAPION  EQU     00E1H
+TAPIN   EQU     00E4H
+TAPIOF  EQU     00E7H
+TAPOON  EQU     00EAH
+TAPOUT  EQU     00EDH
+TAPOOF  EQU     00F0H
+
+CR      EQU     0DH
+
+; OSSAVE
+;   HL = CR-terminated filename
+;   DE = first byte
+;   BC = byte count
+OSSAVE: LD      (TAPEADDRESS),DE
+        LD      (TAPECOUNT),BC
+        CALL    TAPEFILENAME
+
+        LD      A,1             ;LONG LEADER
+        CALL    TAPOON
+        JP      C,TAPEWRITEERROR
+        LD      HL,BINARYTYPE
+        LD      B,10
+        CALL    TAPEWRITEBUFFER
+        JP      C,TAPEWRITEERROR
+        LD      HL,TAPENAME
+        LD      B,6
+        CALL    TAPEWRITEBUFFER
+        JP      C,TAPEWRITEERROR
+        CALL    TAPOOF
+
+        XOR     A               ;SHORT LEADER
+        CALL    TAPOON
+        JP      C,TAPEWRITEERROR
+        CALL    TAPEMAKEINFO
+        LD      HL,TAPEMETA
+        LD      B,6
+        CALL    TAPEWRITEBUFFER
+        JP      C,TAPEWRITEERROR
+
+        LD      HL,(TAPEADDRESS)
+        LD      BC,(TAPECOUNT)
+OSSAVEDATA:
+        LD      A,B
+        OR      C
+        JR      Z,OSSAVEDONE
+        LD      A,(HL)
+        PUSH    BC
+        PUSH    HL
+        CALL    TAPOUT
+        POP     HL
+        POP     BC
+        JP      C,TAPEWRITEERROR
+        INC     HL
+        DEC     BC
+        JR      OSSAVEDATA
+OSSAVEDONE:
+        CALL    TAPOOF
+        RET
+
+; OSLOAD
+;   HL = CR-terminated filename
+;   DE = destination
+;   BC = maximum byte count
+;   Carry reset means the matching program does not fit.
+OSLOAD: LD      (TAPEADDRESS),DE
+        LD      (TAPECOUNT),BC
+        CALL    TAPEFILENAME
+OSLOADSEARCH:
+        CALL    TAPION
+        JP      C,TAPENOTFOUND
+        LD      HL,BINARYTYPE
+        LD      B,10
+        CALL    TAPEMATCHBUFFER
+        JR      C,OSLOADNEXT
+        JR      NZ,OSLOADNEXT
+        LD      HL,TAPENAME
+        LD      B,6
+        CALL    TAPEMATCHBUFFER
+        JR      C,OSLOADNEXT
+        JR      NZ,OSLOADNEXT
+        CALL    TAPIOF
+
+        CALL    TAPION
+        JP      C,TAPEREADERROR
+        LD      HL,TAPEMETA
+        LD      B,6
+        CALL    TAPEREADBUFFER
+        JP      C,TAPEREADERRORCLOSE
+
+; Derive the inclusive metadata range length and compare it with the caller's
+; maximum. The stored start address is descriptive; LOAD uses its DE input.
+        LD      HL,(TAPEMETA+2)
+        LD      DE,(TAPEMETA)
+        OR      A
+        SBC     HL,DE
+        JP      C,TAPEREADERRORCLOSE
+        INC     HL
+        LD      DE,(TAPECOUNT)
+        PUSH    HL
+        OR      A
+        SBC     HL,DE
+        POP     HL
+        JR      C,OSLOADROOM
+        JR      Z,OSLOADROOM
+        CALL    TAPIOF
+        OR      A               ;NO ROOM: CARRY RESET
+        RET
+
+OSLOADROOM:
+        LD      (TAPECOUNT),HL
+        LD      BC,(TAPECOUNT)
+        LD      DE,(TAPEADDRESS)
+OSLOADDATA:
+        LD      A,B
+        OR      C
+        JR      Z,OSLOADDONE
+        PUSH    BC
+        PUSH    DE
+        CALL    TAPIN
+        POP     DE
+        POP     BC
+        JP      C,TAPEREADERRORCLOSE
+        LD      (DE),A
+        INC     DE
+        DEC     BC
+        JR      OSLOADDATA
+OSLOADDONE:
+        CALL    TAPIOF
+        SCF
+        RET
+
+OSLOADNEXT:
+        CALL    TAPIOF
+        JR      OSLOADSEARCH
+
+; Convert a BBC filename to the six-byte cassette form: ASCII uppercase,
+; truncated at six characters and padded with spaces.
+TAPEFILENAME:
+        LD      DE,TAPENAME
+        LD      B,6
+TAPEFILENAMENEXT:
+        LD      A,(HL)
+        CP      CR
+        JR      Z,TAPEFILENAMEPAD
+        INC     HL
+        CP      'a'
+        JR      C,TAPEFILENAMESTORE
+        CP      'z'+1
+        JR      NC,TAPEFILENAMESTORE
+        SUB     20H
+TAPEFILENAMESTORE:
+        LD      (DE),A
+        INC     DE
+        DJNZ    TAPEFILENAMENEXT
+        RET
+TAPEFILENAMEPAD:
+        LD      A,' '
+TAPEFILENAMEPADNEXT:
+        LD      (DE),A
+        INC     DE
+        DJNZ    TAPEFILENAMEPADNEXT
+        RET
+
+; Construct start, inclusive end, and execute=0 metadata.
+TAPEMAKEINFO:
+        LD      DE,(TAPEADDRESS)
+        LD      A,E
+        LD      (TAPEMETA),A
+        LD      A,D
+        LD      (TAPEMETA+1),A
+        LD      HL,(TAPEADDRESS)
+        LD      BC,(TAPECOUNT)
+        ADD     HL,BC
+        DEC     HL
+        LD      A,L
+        LD      (TAPEMETA+2),A
+        LD      A,H
+        LD      (TAPEMETA+3),A
+        XOR     A
+        LD      (TAPEMETA+4),A
+        LD      (TAPEMETA+5),A
+        RET
+
+; Write B bytes at HL. The BIOS byte call may destroy all ordinary registers.
+TAPEWRITEBUFFER:
+        LD      A,(HL)
+        PUSH    BC
+        PUSH    HL
+        CALL    TAPOUT
+        POP     HL
+        POP     BC
+        RET     C
+        INC     HL
+        DJNZ    TAPEWRITEBUFFER
+        OR      A
+        RET
+
+; Read and compare B bytes. Carry reports input failure; NZ reports mismatch.
+TAPEMATCHBUFFER:
+        PUSH    BC
+        PUSH    HL
+        CALL    TAPIN
+        POP     HL
+        POP     BC
+        RET     C
+        CP      (HL)
+        RET     NZ
+        INC     HL
+        DJNZ    TAPEMATCHBUFFER
+        XOR     A
+        RET
+
+; Read B bytes into HL.
+TAPEREADBUFFER:
+        PUSH    BC
+        PUSH    HL
+        CALL    TAPIN
+        POP     HL
+        POP     BC
+        RET     C
+        LD      (HL),A
+        INC     HL
+        DJNZ    TAPEREADBUFFER
+        OR      A
+        RET
+
+TAPENOTFOUND:
+        LD      A,214
+        CALL    EXTERR
+        DEFM    'File not found'
+        DEFB    0
+
+TAPEREADERRORCLOSE:
+        CALL    TAPIOF
+TAPEREADERROR:
+        LD      A,198
+        CALL    EXTERR
+        DEFM    'Tape read error'
+        DEFB    0
+
+TAPEWRITEERROR:
+        CALL    TAPOOF
+        LD      A,198
+        CALL    EXTERR
+        DEFM    'Tape write error'
+        DEFB    0
+
+BINARYTYPE:
+        DEFB    0D0H,0D0H,0D0H,0D0H,0D0H
+        DEFB    0D0H,0D0H,0D0H,0D0H,0D0H
+
+FIN:    END

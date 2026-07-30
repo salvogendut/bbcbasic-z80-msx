@@ -7,12 +7,13 @@ MSX2 computers. The first intended consumer is
 [RainBIOS](https://github.com/salvogendut/rainbios), with a standalone
 cartridge or ROM payload as a second target.
 
-The first graphics milestone is bootable. It packages the unchanged language
+The cassette milestone is bootable. It packages the unchanged language
 core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
 editing, integer and floating-point expressions, strings, stored programs,
-`TIME`, timed `INKEY`, and an initial TMS9918 Graphics II subset. Storage
-remains future work and currently reports `Storage unsupported`.
+`TIME`, timed `INKEY`, an initial TMS9918 Graphics II subset, and sequential
+program `SAVE`/`LOAD` on cassette. Random-access file channels remain future
+work and report `Storage unsupported`.
 
 ## Repository branches
 
@@ -67,7 +68,7 @@ make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
 
 The result is `build/msx-console/bbcbasic_msx_console.rom`: 16,384 bytes with
 SHA-256
-`5ef2f2b17709832c5a3ee59892dba806953cd0b5ec032e43df5dcd7f24f254a5`.
+`14733ea4ae0b7956dfcf9ab9ec4d6f1be838ec1f6efc6da83887fb0c69a7b817`.
 The build validates its link map and fails if the ROM differs.
 
 The final 16 bytes contain RainBIOS payload descriptor v1 while the ordinary
@@ -95,8 +96,13 @@ window against writes:
 
 ```sh
 make test-msx-graphics-openmsx \
-  ZMAC=/path/to/zmac LD80=/path/to/ld80
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
+
+The cassette adapter stores a six-character uppercase name in the standard
+MSX binary-tape two-block envelope. The sibling RainBIOS suite loads and runs
+a tokenized fixture in 1983 and records a real `SAVE` waveform in openMSX.
+`tools/make_msx_tape_fixture.py` generates the deterministic load fixture.
 
 These emulator targets are optional integration checks; `make check` needs no
 assembler or emulator.

@@ -33,10 +33,8 @@
         GLOBAL  OSINIT
         GLOBAL  OSKEY
         GLOBAL  OSLINE
-        GLOBAL  OSLOAD
         GLOBAL  OSOPEN
         GLOBAL  OSRDCH
-        GLOBAL  OSSAVE
         GLOBAL  OSSHUT
         GLOBAL  OSSTAT
         GLOBAL  OSWRCH
@@ -81,7 +79,7 @@ OSINIT: CALL    INITXT
         CALL    KILBUF
         XOR     A
         LD      HL,PSTBASE
-        LD      B,18
+        LD      B,34            ;MSX ADAPTER STATE, 8300H-8321H
 INITCLEAR:
         LD      (HL),A
         INC     HL
@@ -441,8 +439,6 @@ UNSUPPORTED:
 
 OSBGET:
 OSBPUT:
-OSLOAD:
-OSSAVE:
 OSSTAT:
 GETEXT:
 GETPTR:

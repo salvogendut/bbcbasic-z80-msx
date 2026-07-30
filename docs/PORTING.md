@@ -57,9 +57,10 @@ commands follow only after the interpreter is stable.
 5. **Complete:** boot to the BBC BASIC prompt; exercise editing, integer and
    floating-point expressions, strings, a stored program, error reporting,
    the clock, and timed keyboard input.
-6. **Graphics slice complete:** add MSX2 compatibility, sound, storage, and
-   the RainBIOS launch wrapper. The initial MSX1 Graphics II subset is tested
-   independently on C-BIOS and through RainBIOS.
+6. **Graphics and cassette slices complete:** add MSX2 compatibility, sound,
+   random-access storage, and the RainBIOS launch wrapper. The initial MSX1
+   Graphics II subset and sequential tape program storage are tested through
+   RainBIOS.
 
 ## Initial memory strategy
 
@@ -75,8 +76,8 @@ initial MSX build will target:
 
 - payload ROM in page 1 (`4000h-7FFFh`);
 - aligned BBC state at `8000h-82FFh`;
-- adapter state at `8300h-8311h` and program/dynamic memory beginning at
-  `8312h`;
+- adapter state at `8300h-8321h` and program/dynamic memory beginning at
+  `8322h`;
 - initialized RAM in pages 2 and 3, requiring at least 32 KiB for the first
   supported profile.
 
@@ -86,8 +87,9 @@ exercises expressions, editing, program flow, errors, time, and keyboard
 timeouts, and fails on any attempted write. The independent 1983 test confirms
 that the final ROM visibly renders the prompt. A second program exercises
 Graphics II mode selection, colour selection, moves, lines, absolute plotting,
-and pixel readback. MSX2 machines and arbitrary user machine-code paths still
-require separate validation.
+and pixel readback. A cassette fixture separately loads and runs a tokenized
+program through the public MSX tape calls. MSX2 machines and arbitrary user
+machine-code paths still require separate validation.
 
 RainBIOS and standalone cartridge entry can share the interpreter image while
 using different launch wrappers.

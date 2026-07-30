@@ -10,7 +10,8 @@ Primary compatibility references:
 
 - [MSX2 Technical Handbook, Appendix 1: BIOS listing](https://konamiman.github.io/MSX2-Technical-Handbook/md/Appendix1.html)
   for the documented calling conventions of `INITXT`, `CHSNS`, `CHGET`,
-  `CHPUT`, `CLS`, `POSIT`, `ERAFNK`, and `KILBUF`;
+  `CHPUT`, `CLS`, `POSIT`, `ERAFNK`, `KILBUF`, `TAPION`, `TAPIN`, `TAPIOF`,
+  `TAPOON`, `TAPOUT`, and `TAPOOF`;
 - [MSX2 Technical Handbook, Appendix 4: system work area](https://konamiman.github.io/MSX2-Technical-Handbook/md/Appendix4.html)
   for `CSRX`, `CSRY`, and `JIFFY`;
 - [MSX2 Technical Handbook, Chapter 2](https://konamiman.github.io/MSX2-Technical-Handbook/md/Chapter2.html)

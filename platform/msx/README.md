@@ -20,7 +20,11 @@ The P1 adapter provides:
 - a settable centisecond counter for both 50 Hz and 60 Hz machines;
 - Escape polling without consuming ordinary pending keys;
 - Graphics II `MODE 2`, text `MODE 7`, `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
-  absolute `PLOT` modes 4, 5, and 69, and `POINT(x,y)`;
+  `POINT(x,y)`, and `PLOT`: lines and pure moves in modes 0-63 (solid for
+  0-15, dotted for 16-31, with modes 32-63 rendering dotted in this
+  milestone), single points in modes 64-79, and filled triangles in modes
+  80-95 using the two most recently visited points; absolute modes set
+  mode bit 2 and relative modes are clear;
 - sequential cassette program `SAVE` and `LOAD`, with case-insensitive
   six-character names and the standard MSX binary-tape envelope;
 - an explicit `Storage unsupported` error for random-access channels and
@@ -35,12 +39,12 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | `4000h-4012h` | cartridge header and entry veneer |
 | `4013h-423Ah` | console adapter |
 | `4400h-74C1h` | preserved BBC BASIC language core |
-| `74C2h-77AAh` | Graphics II adapter and remaining explicit stubs |
-| `77ABh-794Eh` | cassette program storage adapter |
+| `74C2h-7B75h` | Graphics II adapter and remaining explicit stubs |
+| `7B76h-7D19h` | cassette program storage adapter |
 | `7FF0h-7FFFh` | RainBIOS payload descriptor v1 |
 | `8000h-82FFh` | BBC BASIC fixed RAM |
-| `8300h-8321h` | adapter state and cassette scratch data |
-| `8322h-F2FFh` | initial program/dynamic-memory window |
+| `8300h-8339h` | adapter state and cassette scratch data |
+| `833Ah-F2FFh` | initial program/dynamic-memory window |
 
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
 MSX2 validation, sound, random-access storage, and a RainBIOS return contract
@@ -65,8 +69,11 @@ timeout paths, and records any attempted write while the cartridge is
 selected. The 1983 check separately confirms that the banner and prompt are
 actually rendered, avoiding reliance on openMSX's raw screenshot path.
 `tools/openmsx_graphics.tcl` runs `examples/msx-graphics.bbc`, verifies
-reference pixels and colours, checks `POINT()` result 7, captures the
-Graphics II screen, and retains the same ROM-write guard.
+reference pixels and colours, checks `POINT()` result 7, then runs a
+`drawing-rectangle.bbc` program that exercises absolute `PLOT 85` and
+relative `PLOT 0` / `PLOT 81` triangles, verifies the triangle shape and
+final cursor history, captures the Graphics II screen, and retains the same
+ROM-write guard.
 
 Program tapes contain a long-leader header block (`D0h` repeated ten times
 plus a padded six-byte name) and a short-leader data block (start, inclusive

@@ -48,6 +48,13 @@ COLOUR=51,31,F1,31,51
 GRAPH_STATE=C8,5F,0F
 POINT_RESULT=07,00,00,00
 AFTER_POINT_PATTERN=80
+RECT_PATTERN_NONZERO=188
+RECT_GRAPH=6C,72
+RECT_PREV=6C,4D
+RECT_VERTEX=0F
+RECT_HYPO=F8
+RECT_INSIDE=FF
+RECT_OUTSIDE=00
 """
         validate_graphics_report(report)
         with self.assertRaisesRegex(ValueError, "reference colours"):

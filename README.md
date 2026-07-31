@@ -68,7 +68,7 @@ make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
 
 The result is `build/msx-console/bbcbasic_msx_console.rom`: 16,384 bytes with
 SHA-256
-`29691e2ac6498988b15ef8e80687f902ae834fd886585bcc1f753a49e0434678`.
+`82b0ff999ae85d4105875ad6e8c5a33f37662fbcde1642044c56a430de9759a6`.
 The build validates its link map and fails if the ROM differs.
 
 The final 16 bytes contain RainBIOS payload descriptor v1 while the ordinary
@@ -91,8 +91,9 @@ make test-msx-console-1983 \
 ```
 
 The Graphics II test types and runs `examples/msx-graphics.bbc`, checks
-`MODE`, `GCOL`, `MOVE`, `DRAW`, `PLOT`, and `POINT`, and guards the cartridge
-window against writes:
+`MODE`, `GCOL`, `MOVE`, `DRAW`, `PLOT`, and `POINT`, then runs a
+`drawing-rectangle.bbc` program covering absolute and relative `PLOT`
+triangles, and guards the cartridge window against writes:
 
 ```sh
 make test-msx-graphics-openmsx \

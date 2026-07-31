@@ -21,6 +21,25 @@
         GLOBAL  STEPX
         GLOBAL  STEPY
         GLOBAL  LINEERR
+        GLOBAL  PREVX
+        GLOBAL  PREVY
+        GLOBAL  PLOTMOD
+        GLOBAL  PIXELMODE
+        GLOBAL  DOTMODE
+        GLOBAL  DOTPHASE
+        GLOBAL  TRIX0
+        GLOBAL  TRIY0
+        GLOBAL  TRIX1
+        GLOBAL  TRIY1
+        GLOBAL  TRIX2
+        GLOBAL  TRIY2
+        GLOBAL  TRIXA
+        GLOBAL  TRIXB
+        GLOBAL  TRISA
+        GLOBAL  TRISA2
+        GLOBAL  TRISB
+        GLOBAL  TRISCAN
+        GLOBAL  TRITOP
         GLOBAL  TAPENAME
         GLOBAL  TAPEMETA
         GLOBAL  TAPEADDRESS
@@ -42,6 +61,25 @@ DELTAY:         DEFS    1
 STEPX:          DEFS    1
 STEPY:          DEFS    1
 LINEERR:        DEFS    1
+PREVX:          DEFS    1
+PREVY:          DEFS    1
+PLOTMOD:        DEFS    1
+PIXELMODE:      DEFS    1
+DOTMODE:        DEFS    1
+DOTPHASE:       DEFS    1
+TRIX0:          DEFS    1
+TRIY0:          DEFS    1
+TRIX1:          DEFS    1
+TRIY1:          DEFS    1
+TRIX2:          DEFS    1
+TRIY2:          DEFS    1
+TRIXA:          DEFS    2
+TRIXB:          DEFS    2
+TRISA:          DEFS    2
+TRISA2:         DEFS    2
+TRISB:          DEFS    2
+TRISCAN:        DEFS    1
+TRITOP:         DEFS    1
 TAPENAME:       DEFS    6
 TAPEMETA:       DEFS    6
 TAPEADDRESS:    DEFS    2

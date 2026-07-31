@@ -34,16 +34,16 @@ Its service routines are nonfunctional stubs.
 The subsequent MSX build keeps the cartridge veneer at `4000h`, places the
 independently written console adapter at `4013h-423Ah`, the unchanged core at
 `4400h-74C1h`, and the independently written graphics adapter at
-`74C2h-77AAh`, followed by cassette storage at `77ABh-794Eh`. RainBIOS payload
-descriptor v1 remains at `7FF0h-7FFFh`, fixed RAM at `8000h-82FFh`, and 34
-adapter-state bytes at `8300h-8321h`. Its 16 KiB ROM
+`74C2h-7B75h`, followed by cassette storage at `7B76h-7D19h`. RainBIOS payload
+descriptor v1 remains at `7FF0h-7FFFh`, fixed RAM at `8000h-82FFh`, and 58
+adapter-state bytes at `8300h-8339h`. Its 16 KiB ROM
 has SHA-256
-`29691e2ac6498988b15ef8e80687f902ae834fd886585bcc1f753a49e0434678`.
+`82b0ff999ae85d4105875ad6e8c5a33f37662fbcde1642044c56a430de9759a6`.
 The build driver parses the linker map and rejects boundary overlap.
 
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking
 the module at `8000h` satisfies that requirement. The platform state follows
-the fixed RAM, so `OSINIT` exposes the first user byte at `8322h`.
+the fixed RAM, so `OSINIT` exposes the first user byte at `833Ah`.
 
 ## Platform interface
 
@@ -102,9 +102,11 @@ machine code invoked by `CALL`, `USR`, `INP`, `OUT`, or `OSCALL`.
 The Graphics II integration test retains the cartridge write watch while
 running a stored BASIC program with `MODE`, `GCOL`, `MOVE`, `DRAW`, `PLOT`,
 and `POINT`. It checks mode registers, VRAM reference pixels and colours, and
-pixel readback. RainBIOS also runs the same workload, while 1983 independently
-checks the rendered multicolour frame.
+pixel readback, then runs a `drawing-rectangle.bbc` program that exercises
+absolute `PLOT 85` and relative `PLOT 0` / `PLOT 81` triangles, verifying
+the triangle shape and cursor history. RainBIOS also runs the same workload,
+while 1983 independently checks the rendered multicolour frame.
 
 The three page alignments and stack bound are fixed by the link map and
 `OSINIT`: `ACCS=8000h`, `BUFFER=8100h`, `STAVAR=8200h`, user RAM begins at
-`8322h`, and the initial stack/top-of-memory value is `F300h`.
+`833Ah`, and the initial stack/top-of-memory value is `F300h`.

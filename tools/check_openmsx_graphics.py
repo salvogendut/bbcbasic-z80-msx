@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: BSD-3-Clause
-"""Validate the openMSX BBC BASIC Graphics II program report."""
+"""Validate the openMSX BBC BASIC Graphics II program reports."""
 
 from __future__ import annotations
 
@@ -21,6 +21,9 @@ def validate_report(text: str) -> dict[str, str]:
         "GRAPH_STATE": "C8,5F,0F",
         "POINT_RESULT": "07,00,00,00",
         "AFTER_POINT_PATTERN": "80",
+        "RECT_GRAPH": "6C,72",
+        "RECT_PREV": "6C,4D",
+        "RECT_OUTSIDE": "00",
     }
     for key, value in expected.items():
         if values.get(key) != value:
@@ -32,6 +35,10 @@ def validate_report(text: str) -> dict[str, str]:
         nonzero = int(values["PATTERN_NONZERO"])
         pattern = [int(value, 16) for value in values["PATTERN"].split(",")]
         colour = [int(value, 16) for value in values["COLOUR"].split(",")]
+        rect_nonzero = int(values["RECT_PATTERN_NONZERO"])
+        vertex = int(values["RECT_VERTEX"], 16)
+        hypo = int(values["RECT_HYPO"], 16)
+        inside = int(values["RECT_INSIDE"], 16)
     except (KeyError, ValueError) as error:
         raise ValueError("missing or invalid graphics VRAM report") from error
     if nonzero < 150:
@@ -40,6 +47,15 @@ def validate_report(text: str) -> dict[str, str]:
         raise ValueError(f"one or more reference pixels are clear: {pattern}")
     if [value >> 4 for value in colour] != [5, 3, 15, 3, 5]:
         raise ValueError(f"unexpected reference colours: {colour}")
+    if rect_nonzero < 100:
+        raise ValueError(
+            f"only {rect_nonzero} nonzero triangle pattern bytes were drawn"
+        )
+    if vertex == 0 or hypo == 0 or inside == 0:
+        raise ValueError(
+            "one or more triangle reference pixels are clear: "
+            f"{vertex:02X},{hypo:02X},{inside:02X}"
+        )
     return values
 
 
@@ -53,7 +69,8 @@ def main() -> int:
         parser.error(str(error))
     print(
         "validated openMSX BBC BASIC graphics program: "
-        f"{values['PATTERN_NONZERO']} nonzero pattern bytes"
+        f"{values['PATTERN_NONZERO']} line/point and "
+        f"{values['RECT_PATTERN_NONZERO']} triangle pattern bytes"
     )
     return 0
 

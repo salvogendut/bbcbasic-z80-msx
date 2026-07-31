@@ -79,7 +79,7 @@ OSINIT: CALL    INITXT
         CALL    KILBUF
         XOR     A
         LD      HL,PSTBASE
-        LD      B,34            ;MSX ADAPTER STATE, 8300H-8321H
+        LD      B,58            ;MSX ADAPTER STATE, 8300H-8339H
 INITCLEAR:
         LD      (HL),A
         INC     HL

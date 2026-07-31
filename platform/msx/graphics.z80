@@ -24,6 +24,25 @@
         EXTRN   STEPX
         EXTRN   STEPY
         EXTRN   LINEERR
+        EXTRN   PREVX
+        EXTRN   PREVY
+        EXTRN   PLOTMOD
+        EXTRN   PIXELMODE
+        EXTRN   DOTMODE
+        EXTRN   DOTPHASE
+        EXTRN   TRIX0
+        EXTRN   TRIY0
+        EXTRN   TRIX1
+        EXTRN   TRIY1
+        EXTRN   TRIX2
+        EXTRN   TRIY2
+        EXTRN   TRIXA
+        EXTRN   TRIXB
+        EXTRN   TRISA
+        EXTRN   TRISA2
+        EXTRN   TRISB
+        EXTRN   TRISCAN
+        EXTRN   TRITOP
 
         GLOBAL  CLG
         GLOBAL  COLOUR
@@ -89,8 +108,10 @@ CLEARGRAPH:
 RESETGRAPH:
         XOR     A
         LD      (GRAPHX),A
+        LD      (PREVX),A
         LD      A,191
         LD      (GRAPHY),A
+        LD      (PREVY),A
         RET
 
 ; GCOL 0,c selects a BBC solid foreground colour. Logical colours 0..7 map
@@ -133,6 +154,13 @@ COLOURMAP:
 MOVE:   CALL    PARSEXY
         JR      C,COORDERR
 MOVEPHYSICAL:
+        XOR     A
+        LD      (PIXELMODE),A
+        LD      (DOTMODE),A
+        LD      A,(GRAPHX)
+        LD      (PREVX),A
+        LD      A,(GRAPHY)
+        LD      (PREVY),A
         LD      A,B
         LD      (GRAPHX),A
         LD      A,C
@@ -141,6 +169,13 @@ MOVEPHYSICAL:
 
 DRAW:   CALL    PARSEXY
         JR      C,COORDERR
+        XOR     A
+        LD      (PIXELMODE),A
+        LD      (DOTMODE),A
+        LD      A,(GRAPHX)
+        LD      (PREVX),A
+        LD      A,(GRAPHY)
+        LD      (PREVY),A
         CALL    DRAWTO
         JP      XEQ
 
@@ -150,37 +185,136 @@ COORDERR:
         DEFM    'Graphics coordinate outside screen'
         DEFB    0
 
-; PLOT 4 moves absolutely, PLOT 5 draws an absolute solid line, and PLOT 69
-; plots one absolute foreground point. Other plot modes fail explicitly.
+; PLOT <mode>,<x>,<y> implements the BBC line, point, and triangle groups.
+; Each group uses colour code mode&3 (0 move, 1 foreground, 2 inverse,
+; 3 background) and mode bit 2 for relative versus absolute coordinates.
+;  0-63   lines; solid in 0-15, dotted in 16-31, dash styles 32-63 render
+;         dotted in this milestone;
+;  64-79  single points;
+;  80-95  filled triangles using the two most recently visited points;
+;  96+    rectangles, fills, circles, and ellipses fail explicitly.
 PLOT:   CALL    EXPRI
         EXX
         PUSH    HL
         CALL    COMMA
+        LD      HL,0
+        ADD     HL,SP
+        LD      A,(HL)          ;PEEK THE PLOT MODE BEFORE THE COORDINATES
+        LD      (PLOTMOD),A
+        BIT     2,A
+        JR      NZ,PLOTABSPARSE
+PLOTRELPARSE:
+        CALL    PARSEXYREL
+        JR      C,PLOTCOORDERR
+        JR      PLOTGOT
+PLOTABSPARSE:
         CALL    PARSEXY
         JR      C,PLOTCOORDERR
+PLOTGOT:
         POP     HL
         LD      A,H
         OR      A
         JP      NZ,GRAPHERR
         LD      A,L
-        CP      4
-        JR      Z,MOVEPHYSICAL
-        CP      5
-        JR      Z,PLOTDRAW
-        CP      69
-        JP      NZ,GRAPHERR
+        CP      96
+        JP      NC,GRAPHERR
         LD      A,B
-        LD      (GRAPHX),A
+        LD      (TARGETX),A
         LD      A,C
-        LD      (GRAPHY),A
-        CALL    DRAWPIXEL
-        JP      XEQ
-PLOTDRAW:
-        CALL    DRAWTO
-        JP      XEQ
+        LD      (TARGETY),A
+        LD      A,L
+        CP      64
+        JR      C,PLOTLINE
+        CP      80
+        JR      C,PLOTPOINT
+        JP      PLOTTRI
 PLOTCOORDERR:
         POP     HL
         JR      COORDERR
+
+; Line modes 0-63. Colour 0 is a pure move; otherwise draw from the current
+; graphics cursor to the target.
+PLOTLINE:
+        LD      A,(PLOTMOD)
+        LD      C,A
+        BIT     4,A
+        JR      Z,PLOTLINESOLID
+        LD      A,1
+        LD      (DOTMODE),A
+        LD      A,1
+        LD      (DOTPHASE),A
+        JR      PLOTLINEPIX
+PLOTLINESOLID:
+        XOR     A
+        LD      (DOTMODE),A
+PLOTLINEPIX:
+        LD      A,C
+        AND     3
+        JR      Z,PLOTMOVELINE
+        CALL    SETPIXMODE
+        LD      A,(GRAPHX)
+        LD      (PREVX),A
+        LD      A,(GRAPHY)
+        LD      (PREVY),A
+        LD      A,(TARGETX)
+        LD      B,A
+        LD      A,(TARGETY)
+        LD      C,A
+        CALL    DRAWTO
+        JP      XEQ
+PLOTMOVELINE:
+        LD      A,(GRAPHX)
+        LD      (PREVX),A
+        LD      A,(GRAPHY)
+        LD      (PREVY),A
+        LD      A,(TARGETX)
+        LD      (GRAPHX),A
+        LD      A,(TARGETY)
+        LD      (GRAPHY),A
+        JP      XEQ
+
+; Point modes 64-79. The visited-point history advances and one pixel is
+; written for colours other than zero.
+PLOTPOINT:
+        LD      A,(PLOTMOD)
+        LD      C,A
+        AND     3
+        JR      Z,PLOTPOINTMOVE
+        CALL    SETPIXMODE
+PLOTPOINTMOVE:
+        LD      A,(GRAPHX)
+        LD      (PREVX),A
+        LD      A,(GRAPHY)
+        LD      (PREVY),A
+        LD      A,(TARGETX)
+        LD      (GRAPHX),A
+        LD      A,(TARGETY)
+        LD      (GRAPHY),A
+        LD      A,C
+        AND     3
+        JR      Z,PLOTPOINTDONE
+        CALL    PIXELAT
+PLOTPOINTDONE:
+        JP      XEQ
+
+; Triangle modes 80-95 fill the triangle formed by the two most recently
+; visited points and the target, then advance the cursor history.
+PLOTTRI:
+        LD      A,(PLOTMOD)
+        AND     3
+        JR      Z,PLOTTRIEND
+        CALL    SETPIXMODE
+        CALL    FILLTRIANGLE
+PLOTTRIEND:
+        LD      A,(GRAPHX)
+        LD      (PREVX),A
+        LD      A,(GRAPHY)
+        LD      (PREVY),A
+        LD      A,(TARGETX)
+        LD      (GRAPHX),A
+        LD      A,(TARGETY)
+        LD      (GRAPHY),A
+        JP      XEQ
 
 ; POINT(x,y) returns the TMS9918 colour at a BBC logical coordinate, or -1
 ; when the coordinate is outside the logical screen.
@@ -273,6 +407,165 @@ MAPXDONE:
         OR      A
         RET
 MAPBAD: SCF
+        RET
+
+; Parse two comma-separated signed integer expressions as a displacement from
+; the current graphics cursor, scaled from the BBC 1280x1024 logical grid.
+; Output: B = target x (0..255), C = target y (0..191), carry set if either
+; target leaves the display.
+PARSEXYREL:
+        CALL    EXPRI
+        EXX
+        PUSH    HL
+        CALL    COMMA
+        CALL    EXPRI
+        EXX
+        EX      DE,HL
+        POP     HL
+        PUSH    DE              ;HL = SIGNED X DELTA
+        CALL    DELTADIV5       ;HL = X/5
+        POP     DE              ;DE = SIGNED Y DELTA
+        JR      C,PXYRBAD
+        LD      A,(GRAPHX)
+        LD      C,A
+        LD      B,0
+        ADD     HL,BC           ;TARGET X IN 0..255
+        LD      A,H
+        OR      A
+        JR      NZ,PXYRBAD
+        LD      B,L
+        BIT     7,D
+        JR      Z,PXYRYPOS
+        XOR     A               ;Y NEGATIVE: DELTA IS POSITIVE DOWN
+        SUB     E
+        LD      E,A
+        LD      A,0
+        SBC     A,D
+        LD      D,A
+        PUSH    BC
+        CALL    DELTASCALEY     ;HL = |Y|*3/16
+        POP     BC
+        JR      C,PXYRBAD
+        JR      PXYRADD
+PXYRYPOS:
+        PUSH    BC
+        CALL    DELTASCALEY     ;HL = Y*3/16
+        POP     BC
+        JR      C,PXYRBAD
+        XOR     A               ;Y POSITIVE: DELTA IS NEGATIVE UP
+        SUB     L
+        LD      L,A
+        LD      A,0
+        SBC     A,H
+        LD      H,A
+PXYRADD:
+        PUSH    BC              ;SAVE TARGET X (B)
+        LD      A,(GRAPHY)
+        LD      C,A
+        LD      B,0
+        ADD     HL,BC           ;TARGET Y IN 0..191
+        LD      A,H
+        OR      A
+        JR      NZ,PXYRADDX
+        LD      A,L
+        CP      192
+        JR      NC,PXYRADDX
+        POP     DE              ;D = TARGET X
+        LD      C,A             ;C = TARGET Y
+        LD      B,D             ;B = TARGET X
+        OR      A
+        RET
+PXYRADDX:
+        POP     BC
+PXYRBAD: SCF
+        RET
+
+; Signed 16-bit HL divided by 5, truncated toward zero. Carry if the quotient
+; cannot fit in -255..255. Returns the quotient in HL.
+DELTADIV5:
+        BIT     7,H
+        JR      Z,DIV5U
+        XOR     A
+        SUB     L
+        LD      L,A
+        LD      A,0
+        SBC     A,H
+        LD      H,A
+        CALL    DIV5U
+        JR      C,DIV5BAD
+        XOR     A
+        SUB     L
+        LD      L,A
+        LD      A,0
+        SBC     A,H
+        LD      H,A
+        OR      A
+        RET
+DIV5BAD:
+        SCF
+        RET
+DIV5U:  LD      A,H
+        CP      5
+        JR      NC,DIV5BAD
+        LD      C,0
+        LD      DE,5
+DIV5ULOOP:
+        OR      A
+        SBC     HL,DE
+        JR      C,DIV5UDONE
+        INC     C
+        JR      DIV5ULOOP
+DIV5UDONE:
+        LD      H,0
+        LD      L,C
+        OR      A
+        RET
+
+; Positive 16-bit DE scaled by 3/16. Carry if the result exceeds 191.
+; Returns the scaled value in HL.
+DELTASCALEY:
+        LD      A,D
+        CP      4
+        JR      NC,DSCALEBAD
+        LD      H,D
+        LD      L,E
+        ADD     HL,HL
+        ADD     HL,DE
+        XOR     A
+        SRL     H
+        RR      L
+        SRL     H
+        RR      L
+        SRL     H
+        RR      L
+        SRL     H
+        RR      L
+        LD      A,L
+        CP      192
+        JR      NC,DSCALEBAD
+        OR      A
+        RET
+DSCALEBAD:
+        SCF
+        RET
+
+; Convert a BBC colour code 0-3 into PIXELMODE: 0 foreground set, 1 inverse
+; (XOR), 2 background clear. Colour zero means move only and sets no mode.
+SETPIXMODE:
+        CP      3
+        JR      Z,SETPIXCLEAR
+        CP      2
+        JR      Z,SETPIXXOR
+        XOR     A
+        LD      (PIXELMODE),A
+        RET
+SETPIXXOR:
+        LD      A,1
+        LD      (PIXELMODE),A
+        RET
+SETPIXCLEAR:
+        LD      A,2
+        LD      (PIXELMODE),A
         RET
 
 ; Eight-bit Bresenham line rasterizer. All persistent values live in the
@@ -391,13 +684,32 @@ LINEATEND:
         CP      D
         RET
 
+; Write the pixel at the current graphics cursor. Dotted lines draw every
+; other pixel and leave the other positions unwritten.
 DRAWPIXEL:
+        LD      A,(DOTMODE)
+        OR      A
+        JR      Z,PIXELAT
+        LD      A,(DOTPHASE)
+        XOR     1
+        LD      (DOTPHASE),A
+        JR      NZ,PIXELAT
+        RET
+PIXELAT:
         LD      A,(GRAPHX)
         LD      B,A
         LD      A,(GRAPHY)
         LD      C,A
+
+; Write one physical pixel at B=x, C=y, honouring PIXELMODE.
+FILLPIXEL:
         LD      A,(GRAPHCOLOUR)
         LD      E,A
+        LD      A,(PIXELMODE)
+        CP      1
+        JR      Z,XORPIXEL
+        CP      2
+        JR      Z,CLRPIXEL
 
 ; Set one physical pixel. Each touched colour cell is assigned E over black.
 SETPIXEL:
@@ -409,6 +721,33 @@ SETPIXEL:
         PUSH    HL
         CALL    RDVRM
         OR      D
+        JR      PIXELWRITE
+
+; Invert one physical pixel: set it in the foreground or clear it when the
+; cell already holds the foreground colour.
+XORPIXEL:
+        LD      A,E
+        PUSH    AF
+        CALL    PIXELADDRESS
+        LD      D,A
+        PUSH    HL
+        PUSH    HL
+        CALL    RDVRM
+        XOR     D
+        JR      PIXELWRITE
+
+; Clear one physical pixel to the background.
+CLRPIXEL:
+        LD      A,E
+        PUSH    AF
+        CALL    PIXELADDRESS
+        LD      D,A
+        PUSH    HL
+        PUSH    HL
+        CALL    RDVRM
+        CPL
+        AND     D
+PIXELWRITE:
         POP     HL
         CALL    WRTVRM
         POP     HL
@@ -486,6 +825,297 @@ PIXELROW:
         LD      D,0
         ADD     HL,DE
         POP     AF
+        RET
+
+; Fill the triangle with vertices P1=(PREVX,PREVY), P2=(GRAPHX,GRAPHY) and
+; P3=(TARGETX,TARGETY) using PIXELMODE. The three vertices are sorted by scan
+; line and the horizontal span between two walked edges is filled for each
+; scan line.
+FILLTRIANGLE:
+        LD      A,(PREVX)
+        LD      (TRIX0),A
+        LD      A,(PREVY)
+        LD      (TRIY0),A
+        LD      A,(GRAPHX)
+        LD      (TRIX1),A
+        LD      A,(GRAPHY)
+        LD      (TRIY1),A
+        LD      A,(TARGETX)
+        LD      (TRIX2),A
+        LD      A,(TARGETY)
+        LD      (TRIY2),A
+        LD      A,(TRIY0)
+        LD      B,A
+        LD      A,(TRIY1)
+        CP      B
+        JR      NC,FILLSORT2
+        CALL    FILLSWAP01
+FILLSORT2:
+        LD      A,(TRIY1)
+        LD      B,A
+        LD      A,(TRIY2)
+        CP      B
+        JR      NC,FILLSORT3
+        CALL    FILLSWAP12
+FILLSORT3:
+        LD      A,(TRIY0)
+        LD      B,A
+        LD      A,(TRIY1)
+        CP      B
+        JR      NC,FILLSORTED
+        CALL    FILLSWAP01
+FILLSORTED:
+        LD      A,(TRIY2)
+        LD      B,A
+        LD      A,(TRIY0)
+        SUB     B
+        JP      Z,FILLHORIZ
+        LD      A,B
+        SUB     (TRIY0)         ;A = Y2-Y0
+        LD      E,A
+        LD      A,(TRIX2)
+        LD      B,A
+        LD      A,(TRIX0)
+        SUB     B
+        NEG                     ;A = X2-X0
+        LD      D,A
+        CALL    FIXSLOPE
+        LD      (TRISB),HL
+        LD      A,(TRIY1)
+        LD      B,A
+        LD      A,(TRIY0)
+        SUB     B
+        JR      NZ,FILLTOPEDGE
+        LD      A,(TRIX1)       ;Y1 = Y0: START ON THE BOTTOM EDGE
+        LD      H,A
+        LD      L,0
+        LD      (TRIXA),HL
+        JR      FILLBOTTOMEDGE
+FILLTOPEDGE:
+        LD      A,B             ;B = Y1
+        LD      C,A
+        LD      A,(TRIY0)
+        LD      E,A
+        SUB     C
+        NEG                     ;A = Y1-Y0
+        LD      E,A
+        LD      A,(TRIX1)
+        LD      B,A
+        LD      A,(TRIX0)
+        SUB     B
+        NEG                     ;A = X1-X0
+        LD      D,A
+        CALL    FIXSLOPE
+        LD      (TRISA),HL
+        LD      A,(TRIX0)
+        LD      H,A
+        LD      L,0
+        LD      (TRIXA),HL
+FILLBOTTOMEDGE:
+        LD      A,(TRIY2)
+        LD      B,A
+        LD      A,(TRIY1)
+        SUB     B
+        JR      Z,FILLBOTTOMZERO
+        LD      A,B             ;B = Y2
+        LD      C,A
+        LD      A,(TRIY1)
+        LD      E,A
+        SUB     C
+        NEG                     ;A = Y2-Y1
+        LD      E,A
+        LD      A,(TRIX2)
+        LD      B,A
+        LD      A,(TRIX1)
+        SUB     B
+        NEG                     ;A = X2-X1
+        LD      D,A
+        CALL    FIXSLOPE
+        LD      (TRISA2),HL
+        JR      FILLINIT
+FILLBOTTOMZERO:
+        LD      HL,0
+        LD      (TRISA2),HL
+FILLINIT:
+        LD      A,(TRIX0)
+        LD      H,A
+        LD      L,0
+        LD      (TRIXB),HL
+        LD      A,(TRIY0)
+        LD      (TRISCAN),A
+        LD      A,(TRIY1)
+        LD      (TRITOP),A
+FILLLOOP:
+        LD      A,(TRISCAN)
+        LD      C,A
+        CALL    FILLSPAN
+        LD      A,(TRISCAN)
+        LD      B,A
+        LD      A,(TRITOP)
+        CP      B
+        JR      NZ,FILLSTEP
+        LD      A,(TRIX1)       ;PASS THE MIDDLE VERTEX: WALK THE BOTTOM EDGE
+        LD      H,A
+        LD      L,0
+        LD      (TRIXA),HL
+        LD      HL,(TRISA2)
+        LD      (TRISA),HL
+FILLSTEP:
+        LD      A,(TRISCAN)
+        INC     A
+        LD      (TRISCAN),A
+        LD      B,A
+        LD      A,(TRIY2)
+        CP      B
+        JR      C,FILLDONE
+        LD      HL,(TRISA)
+        LD      DE,(TRIXA)
+        ADD     HL,DE
+        LD      (TRIXA),HL
+        LD      HL,(TRISB)
+        LD      DE,(TRIXB)
+        ADD     HL,DE
+        LD      (TRIXB),HL
+        JR      FILLLOOP
+FILLDONE:
+        RET
+FILLHORIZ1:
+        JP      FILLHORIZ
+
+; Degenerate flat triangle: fill the x span across all three vertices at y0.
+FILLHORIZ:
+        LD      A,(TRIX0)
+        LD      B,A
+        LD      A,(TRIX1)
+        LD      C,A
+        LD      A,(TRIX2)
+        LD      D,B
+        LD      E,C
+        CP      D
+        JR      NC,FILLHORIZMIN
+        LD      D,A
+FILLHORIZMIN:
+        CP      E
+        JR      C,FILLHORIZEND
+        LD      E,A
+FILLHORIZEND:
+        LD      B,D
+        LD      C,E
+        LD      A,(TRIY0)
+        LD      E,A
+        JR      FILLRANGE
+
+FILLSWAP01:
+        LD      A,(TRIX0)
+        LD      B,A
+        LD      A,(TRIX1)
+        LD      (TRIX0),A
+        LD      A,B
+        LD      (TRIX1),A
+        LD      A,(TRIY0)
+        LD      B,A
+        LD      A,(TRIY1)
+        LD      (TRIY0),A
+        LD      A,B
+        LD      (TRIY1),A
+        RET
+FILLSWAP12:
+        LD      A,(TRIX1)
+        LD      B,A
+        LD      A,(TRIX2)
+        LD      (TRIX1),A
+        LD      A,B
+        LD      (TRIX2),A
+        LD      A,(TRIY1)
+        LD      B,A
+        LD      A,(TRIY2)
+        LD      (TRIY1),A
+        LD      A,B
+        LD      (TRIY2),A
+        RET
+
+; Fill the horizontal span between the fixed-point edge positions TRIXA and
+; TRIXB at scanline C, clipped to the 0..255 display.
+FILLSPAN:
+        LD      E,C
+        LD      A,(TRIXA+1)
+        LD      B,A
+        LD      A,(TRIXB+1)
+        CP      B
+        JR      C,FILLSPANSWAP
+        LD      C,A
+        JR      FILLSPANCLIP
+FILLSPANSWAP:
+        LD      C,B
+        LD      B,A
+FILLSPANCLIP:
+        LD      A,B
+        BIT     7,A
+        JR      Z,FILLSPANHI
+        LD      B,0
+FILLSPANHI:
+        LD      A,C
+        CP      255
+        JR      C,FILLSPANGO
+        LD      C,255
+FILLSPANGO:
+        JR      FILLRANGE
+
+; Fill pixels from B (low) to C (high) inclusive at scanline E.
+FILLRANGE:
+        LD      D,B
+FILLRANGEPIX:
+        LD      A,C
+        CP      D
+        JR      C,FILLRANGEDONE
+        PUSH    BC
+        PUSH    DE
+        LD      B,D
+        LD      C,E
+        CALL    FILLPIXEL
+        POP     DE
+        POP     BC
+        INC     D
+        JR      FILLRANGEPIX
+FILLRANGEDONE:
+        RET
+
+; Fixed-point 8.8 slope for a triangle edge: D = signed x span, E = positive
+; y span. Returns HL = (D*256)/E.
+FIXSLOPE:
+        LD      H,D
+        LD      L,0
+        JR      SDIV16
+
+; Signed 16-bit HL divided by the positive byte E. Returns the quotient in
+; HL, truncated toward zero. Clobbers A, B, D, E.
+SDIV16: BIT     7,H
+        JR      Z,SDIVU
+        XOR     A
+        SUB     L
+        LD      L,A
+        LD      A,0
+        SBC     A,H
+        LD      H,A
+        CALL    SDIVU
+        XOR     A
+        SUB     L
+        LD      L,A
+        LD      A,0
+        SBC     A,H
+        LD      H,A
+        RET
+SDIVU:  LD      B,16
+        XOR     A
+SDIVULOOP:
+        ADD     HL,HL
+        ADC     A,A
+        CP      E
+        JR      C,SDIVUNEXT
+        SUB     E
+        INC     L
+SDIVUNEXT:
+        DJNZ    SDIVULOOP
         RET
 
 ; Remaining optional facilities retain the imported port's explicit error.

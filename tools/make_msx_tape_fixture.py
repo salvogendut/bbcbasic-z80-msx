@@ -12,7 +12,7 @@ import struct
 CAS_MARKER = bytes.fromhex("1F A6 DE BA CC 13 7D 74")
 BINARY_TYPE = bytes([0xD0]) * 10
 PROGRAM_NAME = b"TAPET "
-PROGRAM_START = 0x8322
+PROGRAM_START = 0x833A
 
 # Tokenized form of: 10 ?&F3AC=90:PRINT "TAPE OK"
 # BBC lines are length, little-endian line number, tokenized text, CR; a

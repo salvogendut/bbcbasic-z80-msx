@@ -55,7 +55,7 @@ class MsxConsoleBuildTests(unittest.TestCase):
 
     def test_link_map_guard_accepts_the_fixed_windows(self) -> None:
         link_map = """\
-4013   0231   P  -          CONSOLE  build/msx_console.rel
+4013   0235   P  -          CONSOLE  build/msx_console.rel
 4248   0106   P  -          SPRITE.  build/msx_sprite.rel
 4350   00a6   P  -          MSX2.Z8  build/msx_msx2.rel
 4400   0c5d   P  -          MAIN.Z8  build/main.rel
@@ -69,7 +69,7 @@ class MsxConsoleBuildTests(unittest.TestCase):
 """
         self.assertEqual(
             parse_map_sections(link_map)[0],
-            (0x4013, 0x0231, "CONSOLE"),
+            (0x4013, 0x0235, "CONSOLE"),
         )
         validate_map(link_map)
 

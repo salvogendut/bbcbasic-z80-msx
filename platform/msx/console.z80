@@ -276,9 +276,13 @@ OSWRCH: PUSH    AF
         PUSH    BC
         PUSH    DE
         PUSH    HL
+        LD      B,A             ;save the character
         LD      A,(CURMODE)
         CP      5
-        CALL    C,CHPUT
+        LD      A,B             ;restore the character, flags untouched
+        JR      NC,OSWRCH_SKIP  ;suppress in bitmap screens
+        CALL    CHPUT
+OSWRCH_SKIP:
         POP     HL
         POP     DE
         POP     BC

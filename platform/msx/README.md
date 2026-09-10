@@ -54,7 +54,7 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | Window | Contents |
 | --- | --- |
 | `4000h-4012h` | cartridge header and entry veneer |
-| `4013h-4243h` | console adapter |
+| `4013h-4247h` | console adapter |
 | `4248h-434Dh` | sprite command adapter (`*SPRITE` etc.) |
 | `4350h-43F5h` | MSX2 bitmap pixel adapter |
 | `4400h-74C1h` | preserved BBC BASIC language core |

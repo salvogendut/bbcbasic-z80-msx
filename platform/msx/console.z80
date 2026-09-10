@@ -19,6 +19,7 @@
         EXTRN   TRAPCNT
         EXTRN   GRAPHY
         EXTRN   GRAPHCOLOUR
+        EXTRN   CURMODE
         EXTRN   SPRITECMD
 
         GLOBAL  CLRSCN
@@ -268,12 +269,16 @@ CENTS50:
         INC     BC
         RET
 
-; Console output preserves every register and the input flags.
+; Console output preserves every register and the input flags. In the MSX2
+; bitmap screens (MODE 5-8) the BIOS text output would corrupt the bitmap, so
+; character output is suppressed there.
 OSWRCH: PUSH    AF
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        CALL    CHPUT
+        LD      A,(CURMODE)
+        CP      5
+        CALL    C,CHPUT
         POP     HL
         POP     DE
         POP     BC

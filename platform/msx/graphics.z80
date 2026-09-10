@@ -46,8 +46,9 @@
         EXTRN   SOUNDREG
         EXTRN   ENVON
         EXTRN   CURMODE
-        EXTRN   MSX2_PIXEL
-        EXTRN   MSX2_READPIXEL
+        EXTRN   M2PIX
+        EXTRN   M2RDP
+        EXTRN   M2RMW
 
         GLOBAL  CLG
         GLOBAL  COLOUR
@@ -62,6 +63,8 @@
         GLOBAL  POINT
         GLOBAL  GETIMS
         GLOBAL  PUTIMS
+        GLOBAL  M2P6
+        GLOBAL  M2RD6
 
 ; Published MSX BIOS entry points and work-area state.
 RDVRM   EQU     004AH
@@ -163,6 +166,77 @@ CLEARBITMAP:
 CLR_SIZE:
         XOR     A
         CALL    FILVRM
+        RET
+
+; Screen 6 (2bpp, 512x212) pixel write. B=x (0-255, left half), C=y,
+; E=colour (0-15, two bits used). Uses the shared read-modify-write in the
+; MSX2 module. The full 512-wide screen would need a 16-bit X coordinate.
+M2P6:
+        ; addr = y*128 + x/4
+        LD      L,C
+        LD      H,0
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL           ; HL = y*128
+        LD      A,B
+        SRL     A
+        SRL     A               ; x/4
+        OR      L
+        LD      L,A             ; HL = addr
+        ; colour byte (D) and 2-bit mask (E) for field x&3.
+        LD      A,E
+        AND     3
+        LD      D,A             ; D = colour
+        LD      E,3             ; E = mask
+        LD      A,B
+        AND     3               ; field
+        ADD     A,A             ; shift count (field*2)
+        LD      C,A
+        OR      A
+        JR      Z,MSX2_PIXEL6_NSHIFT
+MSX2_PIXEL6_SHIFT:
+        SLA     D
+        SLA     E
+        DEC     C
+        JR      NZ,MSX2_PIXEL6_SHIFT
+MSX2_PIXEL6_NSHIFT:
+        LD      A,E
+        CPL                     ; A = preserve mask
+        JP      M2RMW
+
+; Screen 6 (2bpp) pixel read. B=x, C=y. Returns the colour (0-3) in A.
+M2RD6:
+        LD      L,C
+        LD      H,0
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        LD      A,B
+        SRL     A
+        SRL     A
+        OR      L
+        LD      L,A
+        CALL    RDVRM           ; A = byte
+        LD      D,A
+        LD      A,B
+        AND     3               ; field
+        ADD     A,A             ; shift count
+        JR      Z,MSX2_READ6_DONE
+MSX2_READ6_SHIFT:
+        SRL     D
+        DEC     A
+        JR      NZ,MSX2_READ6_SHIFT
+MSX2_READ6_DONE:
+        LD      A,D
+        AND     3
         RET
 
 ; V9938 register values for Screens 5-8 (R0-R11).
@@ -806,7 +880,7 @@ FILLPIXEL:
         LD      E,A
         LD      A,(CURMODE)
         CP      5
-        JP      NC,MSX2_PIXEL
+        JP      NC,M2PIX
         LD      A,(PIXELMODE)
         CP      1
         JR      Z,XORPIXEL
@@ -868,7 +942,7 @@ PIXELWRITE:
 READPIXEL:
         LD      A,(CURMODE)
         CP      5
-        JP      NC,MSX2_READPIXEL
+        JP      NC,M2RDP
         CALL    PIXELADDRESS
         LD      D,A
         PUSH    HL

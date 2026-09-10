@@ -54,12 +54,12 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | Window | Contents |
 | --- | --- |
 | `4000h-4012h` | cartridge header and entry veneer |
-| `4013h-423Fh` | console adapter |
-| `4240h-4345h` | sprite command adapter (`*SPRITE` etc.) |
-| `4346h-43E1h` | MSX2 bitmap pixel adapter |
+| `4013h-4243h` | console adapter |
+| `4248h-434Dh` | sprite command adapter (`*SPRITE` etc.) |
+| `4350h-43F5h` | MSX2 bitmap pixel adapter |
 | `4400h-74C1h` | preserved BBC BASIC language core |
-| `74C2h-7DFAh` | graphics adapter (Graphics I/II, multicolor, sound) |
-| `7DFBh-7F9Eh` | cassette program storage adapter |
+| `74C2h-7E49h` | graphics adapter (Graphics I/II, multicolor, sound) |
+| `7E4Ah-7FEDh` | cassette program storage adapter |
 | `7FF0h-7FFFh` | RainBIOS payload descriptor v1 |
 | `8000h-82FFh` | BBC BASIC fixed RAM |
 | `8300h-833Ch` | adapter state and cassette scratch data |
@@ -68,9 +68,12 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
 The MSX2 bitmap screens (`MODE 5`-`8`) are programmed through the extended VDP
 registers and default palette, cleared with `FILVRM`, and support `MOVE`/
-`DRAW`/`PLOT`/`POINT` at the 4bpp (Screen 5) and 8bpp (Screens 7/8)
-resolutions; Screen 6 (2bpp, 512-wide) is not yet handled. Random-access
-storage and a RainBIOS return contract are also later milestones.
+`DRAW`/`PLOT`/`POINT` at the 4bpp (Screen 5), 2bpp (Screen 6), and 8bpp
+(Screens 7/8) resolutions. Screen 6 (512 pixels wide) only addresses the left
+256-pixel half until a 16-bit X coordinate is introduced, and its two-bit
+pixels truncate the mapped colour. In `MODE 5`-`8` the BIOS character output
+is suppressed so text cannot corrupt the bitmap. Random-access storage and a
+RainBIOS return contract are also later milestones.
 
 The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
 `8000h-F2FFh` RAM window, two contiguous RAM pages, and required console,

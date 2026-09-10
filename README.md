@@ -72,7 +72,7 @@ make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
 
 The result is `build/msx-console/bbcbasic_msx_console.rom`: 16,384 bytes with
 SHA-256
-`82b0ff999ae85d4105875ad6e8c5a33f37662fbcde1642044c56a430de9759a6`.
+`5f8d03ea3c9a3ae4b7113ae6d4799fdb1d4800cc4777fd5ffcbac35ad24a5027`.
 The build validates its link map and fails if the ROM differs.
 
 The final 16 bytes contain RainBIOS payload descriptor v1 while the ordinary
@@ -104,10 +104,9 @@ make test-msx-graphics-openmsx \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 
-The `SOUND`/`ENVELOPE` test types three `SOUND` commands and an `ENVELOPE`
-with a follow-up `SOUND`, then verifies the resulting PSG register state (tone
-A/C/B periods, volumes, the noise-channel mixer, and the hardware envelope
-period/shape):
+The `SOUND`/`ENVELOPE` test verifies fixed and envelope amplitudes, rising
+pitch, noise routing, tone re-enabling, and the resulting PSG period, volume,
+mixer, and hardware-envelope registers:
 
 ```sh
 make test-msx-sound-openmsx \
@@ -122,8 +121,9 @@ make test-msx-sprite-openmsx \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 
-The `MODE` test switches through the four MSX1 screen modes and verifies the
-resulting `SCRMOD` work-area value:
+The `MODE` test switches through the four MSX1 screen modes, verifies the
+resulting `SCRMOD` work-area value, and confirms that `MODE 5` is rejected on
+an MSX1 without changing the mode:
 
 ```sh
 make test-msx-mode-openmsx \
@@ -138,11 +138,30 @@ make test-msx-msx2-modes-1983 \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 
-The MSX2 plot test plots a point and reads it back with `POINT` on Screens
-5, 7, and 8:
+The MSX2 plot test writes two differently coloured points on opposite sides
+of the former 16 KiB wrap boundary and reads both back on Screens 5, 6, 7,
+and 8:
 
 ```sh
 make test-msx-msx2-plot-1983 \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The independent openMSX MSX2 gate uses the open-source C-BIOS MSX2 machine
+to check the same logical results, the raw high-VRAM bytes (including Screen
+6 bit order and Screen 7 nibble packing), and full-bitmap `CLG`:
+
+```sh
+make test-msx-msx2-openmsx \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The 1983 media gate runs against its Omega unified RainBIOS model, renders a
+visible hardware sprite, executes an indefinite PSG note, and proves that the
+program continues after `SOUND`:
+
+```sh
+make test-msx-media-1983 \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 

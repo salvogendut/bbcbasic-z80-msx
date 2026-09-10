@@ -6,21 +6,26 @@ LD80 ?= ld80
 BUILD_DIR ?= build
 OPENMSX ?= openmsx
 OPENMSX_MACHINE ?= C-BIOS_MSX1
+OPENMSX_MSX2_MACHINE ?= C-BIOS_MSX2
 MSX1983 ?= ../1983/1983
 MSX1983_MODELS ?= ../1983/1983-models.conf
 MSX_CONSOLE_ROM = $(BUILD_DIR)/msx-console/bbcbasic_msx_console.rom
 OPENMSX_SMOKE_REPORT = $(BUILD_DIR)/msx-console/openmsx-smoke.txt
 MSX1983_SCREENSHOT = $(BUILD_DIR)/msx-console/1983-smoke.ppm
+MSX1983_MEDIA_SCREENSHOT = $(BUILD_DIR)/msx-console/1983-media.ppm
 OPENMSX_GRAPHICS_REPORT = $(BUILD_DIR)/msx-console/openmsx-graphics.txt
 OPENMSX_GRAPHICS_SCREENSHOT = $(BUILD_DIR)/msx-console/openmsx-graphics.png
 OPENMSX_SOUND_REPORT = $(BUILD_DIR)/msx-console/openmsx-sound.txt
 OPENMSX_SPRITE_REPORT = $(BUILD_DIR)/msx-console/openmsx-sprite.txt
 OPENMSX_MODE_REPORT = $(BUILD_DIR)/msx-console/openmsx-mode.txt
+OPENMSX_MSX2_REPORT = $(BUILD_DIR)/msx-console/openmsx-msx2.txt
 
 .PHONY: audit-core check cpm-baseline help msx-console msx-layout test toolcheck \
 	test-msx-console-1983 test-msx-console-openmsx \
-	test-msx-graphics-openmsx verify-provenance test-msx-msx2-modes-1983 \
-	test-msx-msx2-plot-1983
+	test-msx-graphics-openmsx test-msx-sound-openmsx \
+	test-msx-sprite-openmsx test-msx-mode-openmsx verify-provenance \
+	test-msx-msx2-modes-1983 test-msx-msx2-plot-1983 \
+	test-msx-msx2-openmsx test-msx-media-1983
 
 help:
 	@echo "make test               Run source-layout tests"
@@ -38,6 +43,8 @@ help:
 	@echo "make test-msx-mode-openmsx    Run the BBC MODE screen switches in openMSX"
 	@echo "make test-msx-msx2-modes-1983 Run the BBC MSX2 MODE 5-8 switches in 1983"
 	@echo "make test-msx-msx2-plot-1983  Run the BBC MSX2 PLOT/POINT round trip in 1983"
+	@echo "make test-msx-msx2-openmsx    Validate MSX2 modes and high VRAM in openMSX"
+	@echo "make test-msx-media-1983       Render a sprite and execute SOUND in 1983"
 	@echo "make check              Run all checks which do not require an assembler"
 
 test:
@@ -120,5 +127,18 @@ test-msx-msx2-plot-1983: msx-console
 	$(PYTHON) tools/check_1983_msx2_plot.py \
 		--1983 "$(MSX1983)" --models "$(MSX1983_MODELS)" \
 		--cart "$(abspath $(MSX_CONSOLE_ROM))"
+
+test-msx-msx2-openmsx: msx-console
+	$(OPENMSX) -machine "$(OPENMSX_MSX2_MACHINE)" \
+		-cart "$(abspath $(MSX_CONSOLE_ROM))" -romtype Normal \
+		-command "set msx2_output {$(abspath $(OPENMSX_MSX2_REPORT))}" \
+		-script "$(abspath tools/openmsx_msx2.tcl)"
+	$(PYTHON) tools/check_openmsx_msx2.py "$(OPENMSX_MSX2_REPORT)"
+
+test-msx-media-1983: msx-console
+	$(PYTHON) tools/check_1983_media.py \
+		--1983 "$(MSX1983)" --models "$(MSX1983_MODELS)" \
+		--cart "$(abspath $(MSX_CONSOLE_ROM))" \
+		--screenshot "$(abspath $(MSX1983_MEDIA_SCREENSHOT))"
 
 check: test verify-provenance audit-core

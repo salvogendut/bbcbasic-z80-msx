@@ -26,19 +26,21 @@ def validate_report(text: str) -> dict[str, str]:
         env_shape = int(values["ENV_SHAPE"], 16)
         tone_b = [int(value, 16) for value in values["TONE_B_PERIOD"].split(",")]
         vol_b = int(values["VOL_B"], 16)
+        env_mixer = int(values["ENV_MIXER"], 16)
+        fixed_vol_b = int(values["FIXED_VOL_B"], 16)
     except (KeyError, ValueError) as error:
         raise ValueError("missing or invalid PSG register report") from error
 
-    if tone_a != [0x50, 0x06]:
-        raise ValueError(f"tone A period {tone_a}, expected [0x50, 0x06]")
-    if tone_c != [0x30, 0x03]:
-        raise ValueError(f"tone C period {tone_c}, expected [0x30, 0x03]")
+    if tone_a != [0xB2, 0x01]:
+        raise ValueError(f"tone A period {tone_a}, expected [0xB2, 0x01]")
+    if tone_c != [0x77, 0x03]:
+        raise ValueError(f"tone C period {tone_c}, expected [0x77, 0x03]")
     if vol_a != 0x08:
         raise ValueError(f"channel A volume {vol_a:#04X}, expected 0x08")
     if vol_c != 0x0A:
         raise ValueError(f"channel C volume {vol_c:#04X}, expected 0x0A")
-    if noise != 0x19:
-        raise ValueError(f"noise period {noise:#04X}, expected 0x19")
+    if noise != 0x0D:
+        raise ValueError(f"noise period {noise:#04X}, expected 0x0D")
     if not (mixer & 0x01):
         raise ValueError(f"mixer {mixer:#04X}: tone A was not disabled")
     if mixer & 0x08:
@@ -47,11 +49,17 @@ def validate_report(text: str) -> dict[str, str]:
         raise ValueError(f"envelope period {env_period}, expected [0x0A, 0x00]")
     if env_shape != 0x0C:
         raise ValueError(f"envelope shape {env_shape:#04X}, expected 0x0C")
-    if tone_b != [0x70, 0x09]:
-        raise ValueError(f"tone B period {tone_b}, expected [0x70, 0x09]")
+    if tone_b != [0xD4, 0x00]:
+        raise ValueError(f"tone B period {tone_b}, expected [0xD4, 0x00]")
     if vol_b != 0x10:
         raise ValueError(
             f"channel B volume {vol_b:#04X}, expected 0x10 (envelope mode)"
+        )
+    if env_mixer & 0x02:
+        raise ValueError(f"mixer {env_mixer:#04X}: tone B was not enabled")
+    if fixed_vol_b != 0x0F:
+        raise ValueError(
+            f"fixed channel B volume {fixed_vol_b:#04X}, expected 0x0F"
         )
     return values
 

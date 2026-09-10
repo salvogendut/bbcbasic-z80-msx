@@ -1,10 +1,9 @@
 ; SPDX-License-Identifier: BSD-3-Clause
 ;
 ; MSX2 (V9938/V9958) bitmap pixel primitives for the BBC BASIC adapter.
-; Screens 5 (4bpp) and 7/8 (8bpp) live here; Screen 6 (2bpp, 512-wide) is
-; implemented in the graphics module because this ROM gap is exhausted. This
-; module is linked into the ROM gap between the sprite module and the language
-; core.
+; Screens 5/7 (4bpp) and 8 (8bpp) live here; Screen 6 (2bpp) is implemented
+; in the graphics module because this ROM gap is exhausted. This module is
+; linked into the ROM gap between the sprite module and the language core.
 
         TITLE   BBC BASIC MSX2 PIXEL ADAPTER
 
@@ -17,9 +16,8 @@
         EXTRN   CURMODE
         EXTRN   M2P6
         EXTRN   M2RD6
-
-RDVRM   EQU     004AH
-WRTVRM  EQU     004DH
+        EXTRN   M2RDV
+        EXTRN   M2WRV
 
 ; MSX2 bitmap pixel write. B=x, C=y, E=colour (0-15). Uses PIXELMODE (0=set,
 ; 1=xor, 2=clear) and CURMODE (5-8).
@@ -27,18 +25,16 @@ M2PIX:
         LD      A,(CURMODE)
         CP      6
         JP      Z,M2P6    ; Screen 6 (2bpp, in graphics module)
-        CP      7
+        CP      8
         JR      NC,MSX2_PIXEL8
-        ; Screen 5 (4bpp): addr = y*128 + x/2.
-        LD      L,C
-        LD      H,0
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL           ; HL = y*128
+        ; Screen 5: y*128+x/2. Screen 7: y*256+x/2 (left 256 pixels).
+        LD      H,C
+        LD      L,0
+        CP      7
+        JR      Z,MSX2_PIXEL47_ADDR
+        SRL     H
+        RR      L               ; HL = y*128 for Screen 5
+MSX2_PIXEL47_ADDR:
         LD      A,B
         SRL     A               ; x/2
         OR      L
@@ -65,7 +61,7 @@ MSX2_PIXEL5_LOW:
 ; Shared read-modify-write. A = preserve mask, D = colour byte, HL = address.
 M2RMW:
         LD      B,A             ; B = preserve mask
-        CALL    RDVRM           ; A = byte, HL preserved
+        CALL    M2RDV           ; A = byte, HL preserved
         PUSH    AF              ; save byte
         LD      A,(PIXELMODE)
         CP      2
@@ -84,10 +80,10 @@ MSX2_RMW_XOR:
         POP     AF
         XOR     D
 MSX2_RMW_WR:
-        CALL    WRTVRM
+        CALL    M2WRV
         RET
 
-; Screen 7/8 (8bpp): addr = y*256 + x.
+; Screen 8 (8bpp): addr = y*256 + x.
 MSX2_PIXEL8:
         LD      H,C             ; H = y
         LD      L,B             ; L = x -> HL = y*256 + x
@@ -97,16 +93,16 @@ MSX2_PIXEL8:
         CP      1
         JR      Z,MSX2_PIXEL8_XOR
         LD      A,E             ; set
-        CALL    WRTVRM
+        CALL    M2WRV
         RET
 MSX2_PIXEL8_CLR:
         XOR     A
-        CALL    WRTVRM
+        CALL    M2WRV
         RET
 MSX2_PIXEL8_XOR:
-        CALL    RDVRM
+        CALL    M2RDV
         XOR     E
-        CALL    WRTVRM
+        CALL    M2WRV
         RET
 
 ; MSX2 bitmap pixel read. B=x, C=y. Returns the colour (0-15) in A.
@@ -114,23 +110,20 @@ M2RDP:
         LD      A,(CURMODE)
         CP      6
         JP      Z,M2RD6 ; Screen 6 (2bpp, in graphics module)
-        CP      7
+        CP      8
         JR      NC,MSX2_READPIXEL8
-        ; Screen 5 (4bpp): addr = y*128 + x/2.
-        LD      L,C
-        LD      H,0
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
+        LD      H,C
+        LD      L,0
+        CP      7
+        JR      Z,MSX2_READ47_ADDR
+        SRL     H
+        RR      L
+MSX2_READ47_ADDR:
         LD      A,B
         SRL     A
         OR      L
         LD      L,A
-        CALL    RDVRM           ; A = byte
+        CALL    M2RDV           ; A = byte
         LD      D,A
         LD      A,B
         AND     1
@@ -149,7 +142,7 @@ MSX2_READ5_LOW:
 MSX2_READPIXEL8:
         LD      H,C
         LD      L,B
-        CALL    RDVRM
+        CALL    M2RDV
         RET
 
 FIN:    END

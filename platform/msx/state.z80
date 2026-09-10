@@ -45,7 +45,8 @@
         GLOBAL  TAPEADDRESS
         GLOBAL  TAPECOUNT
         GLOBAL  SOUNDREG
-        GLOBAL  ENVON
+        GLOBAL  ENVNUM
+        GLOBAL  ENVSHAPE
         GLOBAL  CURMODE
 
 PSTBASE:
@@ -88,7 +89,8 @@ TAPEMETA:       DEFS    6
 TAPEADDRESS:    DEFS    2
 TAPECOUNT:      DEFS    2
 SOUNDREG:       DEFS    1
-ENVON:          DEFS    1
+ENVNUM:         DEFS    1
+ENVSHAPE:       DEFS    1
 CURMODE:        DEFS    1
 PSTEND:
 

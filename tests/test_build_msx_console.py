@@ -34,7 +34,7 @@ class MsxConsoleBuildTests(unittest.TestCase):
         self.assertEqual(ROM_END, 0x8000)
         self.assertEqual(RAM_BASE, 0x8000)
         self.assertEqual(STATE_BASE, 0x8300)
-        self.assertEqual(STATE_END, 0x833D)
+        self.assertEqual(STATE_END, 0x833E)
         self.assertEqual(DESCRIPTOR_ADDRESS, 0x7FF0)
         self.assertEqual(len(EXPECTED_DESCRIPTOR), 16)
         self.assertEqual(sum(EXPECTED_DESCRIPTOR) & 0xFF, 0)
@@ -57,15 +57,15 @@ class MsxConsoleBuildTests(unittest.TestCase):
         link_map = """\
 4013   0235   P  -          CONSOLE  build/msx_console.rel
 4248   0106   P  -          SPRITE.  build/msx_sprite.rel
-4350   00a6   P  -          MSX2.Z8  build/msx_msx2.rel
+4350   00a8   P  -          MSX2.Z8  build/msx_msx2.rel
 4400   0c5d   P  -          MAIN.Z8  build/main.rel
 505d   10d5   P  -          EXEC.Z8  build/exec.rel
 6132   0796   P  -          EVAL.Z8  build/eval.rel
 68c8   0bfa   P  -          FPP.Z80  build/fpp.rel
-74c2   0988   P  -          GRAPHIC  build/msx_graphics.rel
-7e4a   01a4   P  -          STORAGE  build/msx_storage.rel
+74c2   0984   P  -          GRAPHIC  build/msx_graphics.rel
+7e46   01a4   P  -          STORAGE  build/msx_storage.rel
 8000   0300   P  -          RAM.Z80  build/ram.rel
-8300   003d   P  -          STATE.Z  build/msx_state.rel
+8300   003e   P  -          STATE.Z  build/msx_state.rel
 """
         self.assertEqual(
             parse_map_sections(link_map)[0],
@@ -78,7 +78,7 @@ class MsxConsoleBuildTests(unittest.TestCase):
 4013   0400   P  -          CONSOLE  build/msx_console.rel
 4400   0c5d   P  -          MAIN.Z8  build/main.rel
 8000   0300   P  -          RAM.Z80  build/ram.rel
-8300   003d   P  -          STATE.Z  build/msx_state.rel
+8300   003e   P  -          STATE.Z  build/msx_state.rel
 """
         with self.assertRaisesRegex(ValueError, "overlaps"):
             validate_map(link_map)

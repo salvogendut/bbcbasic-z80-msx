@@ -32,23 +32,23 @@ module occupies `8000h-82FFh`. The resulting 16 KiB layout ROM has SHA-256
 Its service routines are nonfunctional stubs.
 
 The subsequent MSX build keeps the cartridge veneer at `4000h`, places the
-independently written console adapter at `4013h-423Ah`, the unchanged core at
-`4400h-74C1h`, and the independently written graphics adapter at
-`74C2h-7B75h`, followed by cassette storage at `7B76h-7D19h`. RainBIOS payload
-descriptor v1 remains at `7FF0h-7FFFh`, fixed RAM at `8000h-82FFh`, and 58
-adapter-state bytes at `8300h-8339h`. Its 16 KiB ROM
-has SHA-256
-`82b0ff999ae85d4105875ad6e8c5a33f37662fbcde1642044c56a430de9759a6`.
+independently written console adapter at `4013h-4247h`, sprite adapter at
+`4248h-434Dh`, MSX2 pixel adapter at `4350h-43F7h`, the unchanged core at
+`4400h-74C1h`, graphics/media adapter at `74C2h-7E45h`, and cassette storage
+at `7E46h-7FE9h`. RainBIOS payload descriptor v1 remains at `7FF0h-7FFFh`,
+fixed RAM at `8000h-82FFh`, and 62 adapter-state bytes at `8300h-833Dh`. Its
+16 KiB ROM has SHA-256
+`5f8d03ea3c9a3ae4b7113ae6d4799fdb1d4800cc4777fd5ffcbac35ad24a5027`.
 The build driver parses the linker map and rejects boundary overlap.
 
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking
 the module at `8000h` satisfies that requirement. The platform state follows
-the fixed RAM, so `OSINIT` exposes the first user byte at `833Ah`.
+the fixed RAM, so `OSINIT` exposes the first user byte at `833Eh`.
 
 ## Platform interface
 
-After resolving symbols supplied by the language core, the new graphics
-adapter (including the remaining sound/device stubs), and `ram.z80`, the
+After resolving symbols supplied by the language core, the graphics/media
+adapter (including PSG, controller, sprite, and MSX2 paths), and `ram.z80`, the
 console adapter must provide these 26 symbols:
 
 ```text

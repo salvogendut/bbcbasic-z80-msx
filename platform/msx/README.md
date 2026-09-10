@@ -3,11 +3,12 @@
 # MSX platform adapter
 
 This directory contains independently written MSX and MSX2 platform code.
-`cartridge.z80`, `console.z80`, `graphics.z80`, `storage.z80`, and
-`state.z80` form the bootable P1 adapter. `descriptor.z80` adds the RainBIOS
-payload descriptor at `7FF0h` without changing the standard cartridge header.
-`layout_stub.z80` remains only as the earlier, nonfunctional address-layout
-proof.
+`cartridge.z80`, `console.z80`, `sprite.z80`, `msx2.z80`, `graphics.z80`,
+`storage.z80`, and `state.z80` form the bootable P1 adapter. `sprite.z80` and
+`msx2.z80` are linked into the ROM gap between the console adapter and the
+language core. `descriptor.z80` adds the RainBIOS payload descriptor at
+`7FF0h` without changing the standard cartridge header. `layout_stub.z80`
+remains only as the earlier, nonfunctional address-layout proof.
 
 The P1 adapter provides:
 
@@ -19,12 +20,28 @@ The P1 adapter provides:
 - cursor position tracking;
 - a settable centisecond counter for both 50 Hz and 60 Hz machines;
 - Escape polling without consuming ordinary pending keys;
-- Graphics II `MODE 2`, text `MODE 7`, `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
+- `MODE n` screen selection for MSX Screen `n`: `MODE 0` text, `MODE 1`
+  Graphics I, `MODE 2` Graphics II, `MODE 3` multicolor, and `MODE 5`-`8` the
+  MSX2 V9938/V9958 bitmap screens (extended register programming plus the
+  default 16-colour palette) plus `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
   `POINT(x,y)`, and `PLOT`: lines and pure moves in modes 0-63 (solid for
   0-15, dotted for 16-31, with modes 32-63 rendering dotted in this
   milestone), single points in modes 64-79, and filled triangles in modes
   80-95 using the two most recently visited points; absolute modes set
   mode bit 2 and relative modes are clear;
+- `SOUND channel, amplitude, pitch, duration` mapped onto the PSG: channel 0
+  drives the noise channel and channels 1-3 drive tone A/B/C, amplitude 0..-15
+  maps to the 4-bit volume, pitch 0-255 maps to a linear 12-bit period (a
+  logarithmic BBC-pitch approximation), and a positive duration is a
+  synchronous JIFFY-timed note that silences the channel afterwards;
+- `ADVAL(n)` returning joystick 1/2 direction for `n` 0/2 and trigger state
+  for `n` 1/3, a digital approximation of the BBC analogue channels;
+- `ENVELOPE` mapping the attack time and rate onto the AY-3-8910 hardware
+  envelope (period R11/R12 and shape R13); subsequent `SOUND` notes use the
+  hardware envelope, while the full BBC ADSR and pitch sweep are approximated;
+- `*SPRITE n,x,y,pattern,colour`, `*SPRITEOFF n`, `*SPRITEPAT n,b0..b7`, and
+  `*SPRITECLR` OSCLI commands driving the Screen 2 VDP sprite attribute and
+  pattern tables (visible only after `MODE 2`);
 - sequential cassette program `SAVE` and `LOAD`, with case-insensitive
   six-character names and the standard MSX binary-tape envelope;
 - an explicit `Storage unsupported` error for random-access channels and
@@ -37,18 +54,26 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | Window | Contents |
 | --- | --- |
 | `4000h-4012h` | cartridge header and entry veneer |
-| `4013h-423Ah` | console adapter |
+| `4013h-4243h` | console adapter |
+| `4248h-434Dh` | sprite command adapter (`*SPRITE` etc.) |
+| `4350h-43F5h` | MSX2 bitmap pixel adapter |
 | `4400h-74C1h` | preserved BBC BASIC language core |
-| `74C2h-7B75h` | Graphics II adapter and remaining explicit stubs |
-| `7B76h-7D19h` | cassette program storage adapter |
+| `74C2h-7E49h` | graphics adapter (Graphics I/II, multicolor, sound) |
+| `7E4Ah-7FEDh` | cassette program storage adapter |
 | `7FF0h-7FFFh` | RainBIOS payload descriptor v1 |
 | `8000h-82FFh` | BBC BASIC fixed RAM |
-| `8300h-8339h` | adapter state and cassette scratch data |
-| `833Ah-F2FFh` | initial program/dynamic-memory window |
+| `8300h-833Ch` | adapter state and cassette scratch data |
+| `833Dh-F2FFh` | initial program/dynamic-memory window |
 
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
-MSX2 validation, sound, random-access storage, and a RainBIOS return contract
-remain later milestones.
+The MSX2 bitmap screens (`MODE 5`-`8`) are programmed through the extended VDP
+registers and default palette, cleared with `FILVRM`, and support `MOVE`/
+`DRAW`/`PLOT`/`POINT` at the 4bpp (Screen 5), 2bpp (Screen 6), and 8bpp
+(Screens 7/8) resolutions. Screen 6 (512 pixels wide) only addresses the left
+256-pixel half until a 16-bit X coordinate is introduced, and its two-bit
+pixels truncate the mapped colour. In `MODE 5`-`8` the BIOS character output
+is suppressed so text cannot corrupt the bitmap. Random-access storage and a
+RainBIOS return contract are also later milestones.
 
 The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
 `8000h-F2FFh` RAM window, two contiguous RAM pages, and required console,

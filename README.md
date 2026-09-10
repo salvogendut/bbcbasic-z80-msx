@@ -11,9 +11,13 @@ The cassette milestone is bootable. It packages the unchanged language
 core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
 editing, integer and floating-point expressions, strings, stored programs,
-`TIME`, timed `INKEY`, an initial TMS9918 Graphics II subset, and sequential
-program `SAVE`/`LOAD` on cassette. Random-access file channels remain future
-work and report `Storage unsupported`.
+`TIME`, timed `INKEY`, screen selection via `MODE n` for MSX Screen `n` —
+`MODE 0` text, `MODE 1` Graphics I, `MODE 2` Graphics II, `MODE 3` multicolor,
+and `MODE 5`-`8` the MSX2 V9938/V9958 bitmap screens — plus PSG-backed
+`SOUND`/`ENVELOPE` with a controller-reading `ADVAL`, hardware sprites via
+`*SPRITE`/`*SPRITEPAT`/`*SPRITEOFF`/`*SPRITECLR`, and sequential program
+`SAVE`/`LOAD` on cassette. Random-access file channels remain future work and
+report `Storage unsupported`.
 
 ## Repository branches
 
@@ -97,6 +101,48 @@ triangles, and guards the cartridge window against writes:
 
 ```sh
 make test-msx-graphics-openmsx \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The `SOUND`/`ENVELOPE` test types three `SOUND` commands and an `ENVELOPE`
+with a follow-up `SOUND`, then verifies the resulting PSG register state (tone
+A/C/B periods, volumes, the noise-channel mixer, and the hardware envelope
+period/shape):
+
+```sh
+make test-msx-sound-openmsx \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The `*SPRITE` test switches to `MODE 2`, defines a pattern, positions a
+sprite, and verifies the resulting VDP sprite attribute and pattern tables:
+
+```sh
+make test-msx-sprite-openmsx \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The `MODE` test switches through the four MSX1 screen modes and verifies the
+resulting `SCRMOD` work-area value:
+
+```sh
+make test-msx-mode-openmsx \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The MSX2 test boots the cartridge on the 1983 Omega MSX2 (V9958) model, types
+`MODE 5`-`8`, and verifies the VDP mode register after each switch:
+
+```sh
+make test-msx-msx2-modes-1983 \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The MSX2 plot test plots a point and reads it back with `POINT` on Screens
+5, 7, and 8:
+
+```sh
+make test-msx-msx2-plot-1983 \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 

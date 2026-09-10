@@ -29,16 +29,18 @@ else:
 
 ROM_BASE = 0x4000
 ADAPTER_BASE = 0x4013
+SPRITE_BASE = 0x4248
+MSX2_BASE = 0x4350
 CORE_BASE = 0x4400
 ROM_END = 0x8000
 RAM_BASE = 0x8000
 STATE_BASE = 0x8300
-STATE_END = 0x833A
+STATE_END = 0x833D
 DESCRIPTOR_ADDRESS = 0x7FF0
 EXPECTED_DESCRIPTOR = bytes.fromhex(
-    "52 42 50 31 01 10 01 1F 10 40 00 80 00 F3 02 F5"
+    "52 42 50 31 01 10 01 3F 10 40 00 80 00 F3 02 D5"
 )
-EXPECTED_SHA256 = "82b0ff999ae85d4105875ad6e8c5a33f37662fbcde1642044c56a430de9759a6"
+EXPECTED_SHA256 = "1697335f9a992a1dd3ae6422d15bebcce11447d801ab4d1820cce3dd3c148a24"
 CORE_MODULES = LANGUAGE_MODULES[:4]
 MAP_SECTION_RE = re.compile(
     r"^(?P<address>[0-9a-fA-F]{4})\s+"
@@ -83,8 +85,16 @@ def validate_map(text: str) -> None:
             )
 
     adapter_length, _ = by_address[ADAPTER_BASE]
-    if ADAPTER_BASE + adapter_length > CORE_BASE:
-        raise ValueError("MSX adapter overlaps the language core")
+    if ADAPTER_BASE + adapter_length > SPRITE_BASE:
+        raise ValueError("MSX adapter overlaps the sprite module")
+
+    sprite_length, _ = by_address[SPRITE_BASE]
+    if SPRITE_BASE + sprite_length > MSX2_BASE:
+        raise ValueError("sprite module overlaps the MSX2 module")
+
+    msx2_length, _ = by_address[MSX2_BASE]
+    if MSX2_BASE + msx2_length > CORE_BASE:
+        raise ValueError("MSX2 module overlaps the language core")
 
     rom_sections = [
         (address, length, module)
@@ -120,6 +130,10 @@ def link_command(ld80: str, output_dir: pathlib.Path) -> list[str]:
         str(object_path(output_dir, "msx_cartridge")),
         f"-P{ADAPTER_BASE:#06x}",
         str(object_path(output_dir, "msx_console")),
+        f"-P{SPRITE_BASE:#06x}",
+        str(object_path(output_dir, "msx_sprite")),
+        f"-P{MSX2_BASE:#06x}",
+        str(object_path(output_dir, "msx_msx2")),
         f"-P{CORE_BASE:#06x}",
         *(str(object_path(output_dir, module)) for module in CORE_MODULES),
         str(object_path(output_dir, "msx_graphics")),
@@ -174,6 +188,20 @@ def main() -> int:
             arguments.zmac,
             ROOT / "platform" / "msx" / "console.z80",
             object_path(output_dir, "msx_console"),
+        )
+    )
+    run(
+        assemble_command(
+            arguments.zmac,
+            ROOT / "platform" / "msx" / "sprite.z80",
+            object_path(output_dir, "msx_sprite"),
+        )
+    )
+    run(
+        assemble_command(
+            arguments.zmac,
+            ROOT / "platform" / "msx" / "msx2.z80",
+            object_path(output_dir, "msx_msx2"),
         )
     )
     run(

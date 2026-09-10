@@ -19,6 +19,8 @@
         EXTRN   TRAPCNT
         EXTRN   GRAPHY
         EXTRN   GRAPHCOLOUR
+        EXTRN   CURMODE
+        EXTRN   SPRITECMD
 
         GLOBAL  CLRSCN
         GLOBAL  GETCSR
@@ -79,7 +81,7 @@ OSINIT: CALL    INITXT
         CALL    KILBUF
         XOR     A
         LD      HL,PSTBASE
-        LD      B,58            ;MSX ADAPTER STATE, 8300H-8339H
+        LD      B,61            ;MSX ADAPTER STATE, 8300H-833CH
 INITCLEAR:
         LD      (HL),A
         INC     HL
@@ -267,12 +269,16 @@ CENTS50:
         INC     BC
         RET
 
-; Console output preserves every register and the input flags.
+; Console output preserves every register and the input flags. In the MSX2
+; bitmap screens (MODE 5-8) the BIOS text output would corrupt the bitmap, so
+; character output is suppressed there.
 OSWRCH: PUSH    AF
         PUSH    BC
         PUSH    DE
         PUSH    HL
-        CALL    CHPUT
+        LD      A,(CURMODE)
+        CP      5
+        CALL    C,CHPUT
         POP     HL
         POP     DE
         POP     BC
@@ -426,11 +432,14 @@ OSSHUT:
 OSOPEN: XOR     A
         RET
 
-; An empty star command is harmless. Other storage/OS operations fail with a
-; clear BBC BASIC error instead of silently pretending to work.
+; An empty star command is harmless. Sprite commands are handled by the
+; graphics adapter; other storage/OS operations fail with a clear BBC BASIC
+; error instead of silently pretending to work.
 OSCLI:  LD      A,(HL)
         CP      CR
         RET     Z
+        CALL    SPRITECMD
+        RET     C
 UNSUPPORTED:
         LD      A,200
         CALL    EXTERR

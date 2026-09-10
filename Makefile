@@ -14,6 +14,7 @@ MSX1983_SCREENSHOT = $(BUILD_DIR)/msx-console/1983-smoke.ppm
 OPENMSX_GRAPHICS_REPORT = $(BUILD_DIR)/msx-console/openmsx-graphics.txt
 OPENMSX_GRAPHICS_SCREENSHOT = $(BUILD_DIR)/msx-console/openmsx-graphics.png
 OPENMSX_SOUND_REPORT = $(BUILD_DIR)/msx-console/openmsx-sound.txt
+OPENMSX_SPRITE_REPORT = $(BUILD_DIR)/msx-console/openmsx-sprite.txt
 
 .PHONY: audit-core check cpm-baseline help msx-console msx-layout test toolcheck \
 	test-msx-console-1983 test-msx-console-openmsx \
@@ -31,6 +32,7 @@ help:
 	@echo "make test-msx-console-1983     Confirm the rendered prompt in 1983"
 	@echo "make test-msx-graphics-openmsx Run the BBC graphics program in openMSX"
 	@echo "make test-msx-sound-openmsx   Run the BBC SOUND program in openMSX"
+	@echo "make test-msx-sprite-openmsx  Run the BBC *SPRITE commands in openMSX"
 	@echo "make check              Run all checks which do not require an assembler"
 
 test:
@@ -89,5 +91,12 @@ test-msx-sound-openmsx: msx-console
 		-command "set sound_output {$(abspath $(OPENMSX_SOUND_REPORT))}" \
 		-script "$(abspath tools/openmsx_sound.tcl)"
 	$(PYTHON) tools/check_openmsx_sound.py "$(OPENMSX_SOUND_REPORT)"
+
+test-msx-sprite-openmsx: msx-console
+	$(OPENMSX) -machine "$(OPENMSX_MACHINE)" \
+		-cart "$(abspath $(MSX_CONSOLE_ROM))" -romtype Normal \
+		-command "set sprite_output {$(abspath $(OPENMSX_SPRITE_REPORT))}" \
+		-script "$(abspath tools/openmsx_sprite.tcl)"
+	$(PYTHON) tools/check_openmsx_sprite.py "$(OPENMSX_SPRITE_REPORT)"
 
 check: test verify-provenance audit-core

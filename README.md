@@ -12,7 +12,8 @@ core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
 editing, integer and floating-point expressions, strings, stored programs,
 `TIME`, timed `INKEY`, an initial TMS9918 Graphics II subset, PSG-backed
-`SOUND`/`ENVELOPE` with a controller-reading `ADVAL`, and sequential program
+`SOUND`/`ENVELOPE` with a controller-reading `ADVAL`, hardware sprites via
+`*SPRITE`/`*SPRITEPAT`/`*SPRITEOFF`/`*SPRITECLR`, and sequential program
 `SAVE`/`LOAD` on cassette. Random-access file channels remain future work and
 report `Storage unsupported`.
 
@@ -108,6 +109,14 @@ period/shape):
 
 ```sh
 make test-msx-sound-openmsx \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The `*SPRITE` test switches to `MODE 2`, defines a pattern, positions a
+sprite, and verifies the resulting VDP sprite attribute and pattern tables:
+
+```sh
+make test-msx-sprite-openmsx \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 

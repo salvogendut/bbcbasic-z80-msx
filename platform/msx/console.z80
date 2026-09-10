@@ -19,6 +19,7 @@
         EXTRN   TRAPCNT
         EXTRN   GRAPHY
         EXTRN   GRAPHCOLOUR
+        EXTRN   SPRITECMD
 
         GLOBAL  CLRSCN
         GLOBAL  GETCSR
@@ -426,11 +427,14 @@ OSSHUT:
 OSOPEN: XOR     A
         RET
 
-; An empty star command is harmless. Other storage/OS operations fail with a
-; clear BBC BASIC error instead of silently pretending to work.
+; An empty star command is harmless. Sprite commands are handled by the
+; graphics adapter; other storage/OS operations fail with a clear BBC BASIC
+; error instead of silently pretending to work.
 OSCLI:  LD      A,(HL)
         CP      CR
         RET     Z
+        CALL    SPRITECMD
+        RET     C
 UNSUPPORTED:
         LD      A,200
         CALL    EXTERR

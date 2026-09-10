@@ -35,6 +35,9 @@ The P1 adapter provides:
 - `ENVELOPE` mapping the attack time and rate onto the AY-3-8910 hardware
   envelope (period R11/R12 and shape R13); subsequent `SOUND` notes use the
   hardware envelope, while the full BBC ADSR and pitch sweep are approximated;
+- `*SPRITE n,x,y,pattern,colour`, `*SPRITEOFF n`, `*SPRITEPAT n,b0..b7`, and
+  `*SPRITECLR` OSCLI commands driving the Screen 2 VDP sprite attribute and
+  pattern tables (visible only after `MODE 2`);
 - sequential cassette program `SAVE` and `LOAD`, with case-insensitive
   six-character names and the standard MSX binary-tape envelope;
 - an explicit `Storage unsupported` error for random-access channels and

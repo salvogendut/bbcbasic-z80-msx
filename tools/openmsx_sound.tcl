@@ -12,7 +12,7 @@ if {![info exists sound_output]} {
 }
 
 after time 4.00 {
-    type_via_keybuf "SOUND 1,-15,100,0\rSOUND 3,-10,50,0\rSOUND 0,-8,200,0\r"
+    type_via_keybuf "SOUND 1,-15,100,-1\rSOUND 3,-10,50,-1\rSOUND 0,-8,4,-1\r"
 }
 
 after time 8.00 {
@@ -27,10 +27,10 @@ after time 8.00 {
     puts $handle [format "MIXER=%02X" [debug read "PSG regs" 7]]
     close $handle
 
-    type_via_keybuf "ENVELOPE 1,5,-1,0,0,0,0,0,0,-10,15,-10,0,0\rSOUND 2,-15,150,0\r"
+    type_via_keybuf "ENVELOPE 1,5,0,0,0,0,0,0,10,0,0,-10,126,0\rSOUND 2,1,150,-1\r"
 }
 
-after time 12.00 {
+after time 11.00 {
     set handle [open $::sound_output a]
     puts $handle [format "ENV_PERIOD=%02X,%02X" \
         [debug read "PSG regs" 11] [debug read "PSG regs" 12]]
@@ -38,6 +38,14 @@ after time 12.00 {
     puts $handle [format "TONE_B_PERIOD=%02X,%02X" \
         [debug read "PSG regs" 2] [debug read "PSG regs" 3]]
     puts $handle [format "VOL_B=%02X" [debug read "PSG regs" 9]]
+    puts $handle [format "ENV_MIXER=%02X" [debug read "PSG regs" 7]]
+    close $handle
+    type_via_keybuf "SOUND 2,-15,150,-1\r"
+}
+
+after time 14.00 {
+    set handle [open $::sound_output a]
+    puts $handle [format "FIXED_VOL_B=%02X" [debug read "PSG regs" 9]]
     close $handle
     exit
 }

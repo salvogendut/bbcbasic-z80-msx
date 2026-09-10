@@ -20,6 +20,7 @@ def validate_report(text: str) -> dict[str, str]:
         mode3 = int(values["MODE3_SCRMOD"])
         mode2 = int(values["MODE2_SCRMOD"])
         mode0 = int(values["MODE0_SCRMOD"])
+        mode5_msx1 = int(values["MODE5_MSX1_SCRMOD"])
     except (KeyError, ValueError) as error:
         raise ValueError("missing or invalid SCRMOD report") from error
 
@@ -31,6 +32,10 @@ def validate_report(text: str) -> dict[str, str]:
         raise ValueError(f"MODE 2 -> SCRMOD {mode2}, expected 2")
     if mode0 != 0:
         raise ValueError(f"MODE 0 -> SCRMOD {mode0}, expected 0")
+    if mode5_msx1 != 0:
+        raise ValueError(
+            f"MODE 5 on MSX1 changed SCRMOD to {mode5_msx1}, expected 0"
+        )
     return values
 
 

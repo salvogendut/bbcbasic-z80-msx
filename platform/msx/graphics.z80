@@ -13,6 +13,7 @@
         EXTRN   EXPRI
         EXTRN   COMMA
         EXTRN   BRAKET
+        EXTRN   CENTSTOTICKS
 
         EXTRN   GRAPHX
         EXTRN   GRAPHY
@@ -44,7 +45,8 @@
         EXTRN   TRISCAN
         EXTRN   TRITOP
         EXTRN   SOUNDREG
-        EXTRN   ENVON
+        EXTRN   ENVNUM
+        EXTRN   ENVSHAPE
         EXTRN   CURMODE
         EXTRN   M2PIX
         EXTRN   M2RDP
@@ -65,17 +67,25 @@
         GLOBAL  PUTIMS
         GLOBAL  M2P6
         GLOBAL  M2RD6
+        GLOBAL  M2RDV
+        GLOBAL  M2WRV
 
 ; Published MSX BIOS entry points and work-area state.
 RDVRM   EQU     004AH
 WRTVRM  EQU     004DH
-WRTVDP  EQU     0047H
 FILVRM  EQU     0056H
+CHGMOD  EQU     005FH
 INITXT  EQU     006CH
 INIT32  EQU     006FH
 INITGRP EQU     0072H
 INIMLT  EQU     0075H
 SCRMOD  EQU     0FCAFH
+BAKCLR  EQU     0F3EAH
+BDRCLR  EQU     0F3EBH
+MSXVER  EQU     002DH
+SUBROM  EQU     015CH
+SUBWRT  EQU     0109H
+SUBRD   EQU     010DH
 
 ; MODE n selects MSX Screen n for n in 0,1,2,3,5,6,7,8; MODE 4 and >=9 are
 ; rejected. Screens 5-8 require an MSX2 V9938/V9958 VDP.
@@ -89,9 +99,9 @@ MODE:   CALL    EXPRI
         JP      NC,GRAPHERR
         CP      4
         JP      Z,GRAPHERR
-        LD      (CURMODE),A     ; record the screen mode
         CP      5
         JP      NC,MODE_MSX2
+        LD      (CURMODE),A     ; record the screen mode
         OR      A
         JR      Z,MODE0
         CP      3
@@ -108,65 +118,25 @@ MODE2:  CALL    INITGRP          ; MODE 2 -> Screen 2
 MODE3:  CALL    INIMLT           ; MODE 3 -> Screen 3
         JP      XEQ
 
-; MODE 5-8: program the V9938 mode registers R0-R11 and the default palette,
-; then clear the bitmap.
+; MODE 5-8: use the published main-BIOS CHGMOD entry, which dispatches to the
+; MSX2 SUB-ROM and performs the full bitmap clear. Refuse the request on an
+; MSX1 before changing the adapter's current-mode state.
 MODE_MSX2:
-        PUSH    AF              ; save the mode (5-8)
-        SUB     5               ; A = 0..3
-        LD      H,0
-        LD      L,A
-        LD      D,H
-        LD      E,L             ; DE = index
-        ADD     HL,HL
-        ADD     HL,HL
-        LD      B,H
-        LD      C,L             ; BC = index*4
-        ADD     HL,HL
-        ADD     HL,BC           ; HL = index*12
-        LD      DE,SCR5_REGS
-        ADD     HL,DE           ; HL = register table
-        LD      C,0
-MODE_MSX2_REGLOOP:
-        LD      A,(HL)
-        LD      B,A             ; B = data
-        PUSH    BC
-        CALL    WRTVDP
-        POP     BC
-        INC     HL
-        INC     C
-        LD      A,C
-        CP      12
-        JR      NZ,MODE_MSX2_REGLOOP
-        ; Set R16 = 0 (palette index), then write 32 palette bytes.
-        LD      B,0
-        LD      C,16
-        CALL    WRTVDP
-        LD      HL,SCR_PALETTE
-        LD      B,32
-MODE_MSX2_PALLOOP:
-        LD      A,(HL)
-        OUT     (9AH),A
-        INC     HL
-        DJNZ    MODE_MSX2_PALLOOP
-        POP     AF              ; restore the mode (5-8)
-        CALL    CLEARBITMAP
-        JP      XEQ
-
-; Clear the MSX2 bitmap (Screen 5-8) with colour 0 using FILVRM. The bitmap
-; starts at VRAM 0 and is 27136 bytes for Screens 5/6 or 54272 for Screens 7/8.
-; A = mode (5-8).
-CLEARBITMAP:
         PUSH    AF
-        LD      HL,0
-        LD      BC,6A00H        ; Screen 5/6 bitmap size (27136)
-        POP     AF
-        CP      7
-        JR      C,CLR_SIZE
-        LD      BC,0D400H       ; Screen 7/8 bitmap size (54272)
-CLR_SIZE:
+        LD      A,(MSXVER)
+        OR      A
+        JR      Z,MODE_MSX2_BAD
         XOR     A
-        CALL    FILVRM
-        RET
+        LD      (BAKCLR),A
+        LD      (BDRCLR),A
+        POP     AF
+        LD      (CURMODE),A
+        CALL    CHGMOD
+        CALL    RESETGRAPH
+        JP      XEQ
+MODE_MSX2_BAD:
+        POP     AF
+        JP      GRAPHERR
 
 ; Screen 6 (2bpp, 512x212) pixel write. B=x (0-255, left half), C=y,
 ; E=colour (0-15, two bits used). Uses the shared read-modify-write in the
@@ -187,7 +157,7 @@ M2P6:
         SRL     A               ; x/4
         OR      L
         LD      L,A             ; HL = addr
-        ; colour byte (D) and 2-bit mask (E) for field x&3.
+        ; colour byte (D) and 2-bit mask (E) for the left-to-right field.
         LD      A,E
         AND     3
         LD      D,A             ; D = colour
@@ -196,6 +166,9 @@ M2P6:
         AND     3               ; field
         ADD     A,A             ; shift count (field*2)
         LD      C,A
+        LD      A,6
+        SUB     C
+        LD      C,A             ; V9938 stores the left pixel in bits 7-6
         OR      A
         JR      Z,MSX2_PIXEL6_NSHIFT
 MSX2_PIXEL6_SHIFT:
@@ -224,11 +197,14 @@ M2RD6:
         SRL     A
         OR      L
         LD      L,A
-        CALL    RDVRM           ; A = byte
+        CALL    M2RDV           ; A = byte
         LD      D,A
         LD      A,B
         AND     3               ; field
         ADD     A,A             ; shift count
+        LD      C,A
+        LD      A,6
+        SUB     C
         JR      Z,MSX2_READ6_DONE
 MSX2_READ6_SHIFT:
         SRL     D
@@ -239,25 +215,23 @@ MSX2_READ6_DONE:
         AND     3
         RET
 
-; V9938 register values for Screens 5-8 (R0-R11).
-SCR5_REGS:
-        DEFB    06H,60H,1FH,00H,00H,0EFH,0FH,01H,08H,00H,00H,00H
-SCR6_REGS:
-        DEFB    08H,60H,1FH,00H,00H,0EFH,0FH,01H,08H,00H,00H,00H
-SCR7_REGS:
-        DEFB    0AH,60H,1FH,00H,00H,0F7H,1EH,01H,08H,00H,00H,01H
-SCR8_REGS:
-        DEFB    0EH,60H,1FH,00H,00H,0F7H,1EH,01H,08H,00H,00H,01H
+; Published MSX2 SUB-ROM 16-bit VRAM access. The main-ROM SUBROM wrapper owns
+; slot selection and restores IX before returning to our caller.
+M2WRV: PUSH    IX
+        LD      IX,SUBWRT
+        JP      SUBROM
+M2RDV: PUSH    IX
+        LD      IX,SUBRD
+        JP      SUBROM
 
-; Default 0GRB palette (16 entries of two bytes each).
-SCR_PALETTE:
-        DEFB    00H,00H,00H,00H,11H,06H,33H,07H
-        DEFB    17H,01H,27H,03H,51H,01H,27H,06H
-        DEFB    71H,01H,73H,03H,61H,06H,64H,06H
-        DEFB    11H,04H,65H,02H,55H,05H,77H,07H
-
-; Clear the Graphics II bitmap and reset the graphics cursor to BBC (0,0).
+; Clear the active bitmap and reset the graphics cursor to BBC (0,0).
 CLG:    LD      A,(SCRMOD)
+        CP      5
+        JR      C,CLGMSX1
+        CALL    CHGMOD          ; SUB-ROM clears the complete MSX2 bitmap
+        CALL    RESETGRAPH
+        JP      XEQ
+CLGMSX1:
         CP      2
         CALL    NZ,INITGRP
         CALL    CLEARGRAPH
@@ -299,12 +273,21 @@ GCOL:   CALL    EXPRI
         OR      A
         JR      NZ,GRAPHERRPOP
         LD      A,L
+        LD      E,A
+        LD      A,(CURMODE)
+        CP      6
+        LD      A,E
+        JR      NZ,GCOLMAP
+        AND     3               ; Screen 6 exposes four physical colours
+        JR      GCOLSTORE
+GCOLMAP:
         AND     7
         LD      E,A
         LD      D,0
         LD      HL,COLOURMAP
         ADD     HL,DE
         LD      A,(HL)
+GCOLSTORE:
         LD      (GRAPHCOLOUR),A
         POP     HL
         LD      A,H
@@ -498,6 +481,10 @@ POINT:  CALL    PARSEXY
         JR      C,POINTOFF
         CALL    READPIXEL
         LD      E,A
+        LD      A,(CURMODE)
+        CP      6
+        LD      B,E
+        JR      Z,POINTMAPPED   ; Screen 6 colours are already logical 0..3
         LD      HL,COLOURMAP
         LD      B,0
 POINTMAP:
@@ -1314,62 +1301,76 @@ PUTIMS:
         DEFM    'Sorry'
         DEFB    0
 
-; ENVELOPE n, t1, pi1, p2, t2, pi2, p3, t3, pi3, aa, al, ad, ar, ala
-; Programs the AY-3-8910 hardware envelope from the attack time (t1) and the
-; attack rate (aa). The full BBC ADSR and pitch-sweep parameters are parsed
-; but not faithfully reproduced; the AY fixed shapes approximate the envelope.
-; t1 sets the envelope period (R11/R12) and aa<0 selects an attack shape.
-ENVEL:  CALL    EXPRI           ; n (envelope number, ignored)
-        EXX
-        CALL    COMMA
-        CALL    EXPRI           ; t1
+; ENVELOPE N,T,PI1,PI2,PI3,PN1,PN2,PN3,AA,AD,AS,AR,ALA,ALD.
+; The AY has one shared hardware envelope, so this adapter retains the most
+; recently defined number. T selects its period and the sign of AA selects an
+; attack or decay shape; pitch sweeps and the remaining ADSR phases are parsed
+; but approximated. SOUND with a positive amplitude selects this definition.
+ENVEL:  CALL    EXPRI           ; N
         EXX
         PUSH    HL
         CALL    COMMA
-        CALL    EXPRI           ; pi1
-        EXX
-        CALL    COMMA
-        CALL    EXPRI           ; p2
-        EXX
-        CALL    COMMA
-        CALL    EXPRI           ; t2
-        EXX
-        CALL    COMMA
-        CALL    EXPRI           ; pi2
-        EXX
-        CALL    COMMA
-        CALL    EXPRI           ; p3
-        EXX
-        CALL    COMMA
-        CALL    EXPRI           ; t3
-        EXX
-        CALL    COMMA
-        CALL    EXPRI           ; pi3
-        EXX
-        CALL    COMMA
-        CALL    EXPRI           ; aa
+        CALL    EXPRI           ; T
         EXX
         PUSH    HL
         CALL    COMMA
-        CALL    EXPRI           ; al
+        CALL    EXPRI           ; PI1
         EXX
         CALL    COMMA
-        CALL    EXPRI           ; ad
+        CALL    EXPRI           ; PI2
         EXX
         CALL    COMMA
-        CALL    EXPRI           ; ar
+        CALL    EXPRI           ; PI3
         EXX
         CALL    COMMA
-        CALL    EXPRI           ; ala
+        CALL    EXPRI           ; PN1
         EXX
-        POP     DE              ; aa
-        POP     HL              ; t1
+        CALL    COMMA
+        CALL    EXPRI           ; PN2
+        EXX
+        CALL    COMMA
+        CALL    EXPRI           ; PN3
+        EXX
+        CALL    COMMA
+        CALL    EXPRI           ; AA
+        EXX
+        PUSH    HL
+        CALL    COMMA
+        CALL    EXPRI           ; AD
+        EXX
+        CALL    COMMA
+        CALL    EXPRI           ; AS
+        EXX
+        CALL    COMMA
+        CALL    EXPRI           ; AR
+        EXX
+        CALL    COMMA
+        CALL    EXPRI           ; ALA
+        EXX
+        CALL    COMMA
+        CALL    EXPRI           ; ALD
+        EXX
+        POP     DE              ; AA
+        POP     HL              ; T
+        POP     BC              ; N
 
-        ; Envelope period = t1 * 2 (t1 in hundredths of a second).
+        LD      A,C
+        LD      (ENVNUM),A
+
+        ; Negative AA selects decay; zero or positive AA selects attack.
+        LD      A,D
+        OR      A
+        LD      A,8
+        JP      M,ENVSHAPESTORE
+        LD      A,0CH
+ENVSHAPESTORE:
+        LD      (ENVSHAPE),A
+
+        ; Envelope period = T * 2 (T is in hundredths of a second).
         LD      A,H
         OR      A
         JR      Z,ENVPERIOD
-        LD      HL,255          ; clamp t1 to 255
+        LD      HL,255          ; clamp T to 255
 ENVPERIOD:
         ADD     HL,HL
         LD      E,L
@@ -1378,33 +1379,16 @@ ENVPERIOD:
         LD      E,H
         LD      A,12
         CALL    WRTPSG
-
-        ; Shape: repeat decay (08h), or repeat attack (0Ch) when aa is negative.
-        LD      A,D
-        OR      A
-        JP      M,ENVATTACK
-        LD      A,8
-        JR      ENVSHAPE
-ENVATTACK:
-        LD      A,0CH
-ENVSHAPE:
-        LD      E,A
-        LD      A,13
-        CALL    WRTPSG
-
-        ; Enable the hardware envelope for subsequent SOUND notes.
-        LD      A,1
-        LD      (ENVON),A
         JP      XEQ
 
 ; SOUND channel, amplitude, pitch, duration
 ;   channel  0 = noise, 1-3 = tone A/B/C.
-;   amplitude 0..-15 (0 = off, -15 = loudest).
-;   pitch    0-255, higher is lower frequency.
-;   duration in twentieths of a second: 0 plays indefinitely, a positive
-;   value plays synchronously and then silences the channel.
-; The BBC logarithmic pitch scale is approximated by a linear PSG period;
-; timing is a JIFFY-based synchronous wait.
+;   amplitude -15..0 selects fixed volume; a positive value selects ENVELOPE.
+;   pitch    0-255, with higher values producing higher frequencies.
+;   duration in twentieths of a second: -1 plays indefinitely, 0..254 play
+;   synchronously and then silence the channel.
+; A compact octave-linear conversion approximates the BBC quarter-semitone
+; pitch scale; timing is a JIFFY-based synchronous wait.
 SOUND:  CALL    EXPRI
         EXX
         PUSH    HL              ; channel
@@ -1431,56 +1415,81 @@ SOUND:  CALL    EXPRI
         JP      NC,SOUNDBAD
         PUSH    AF              ; save channel
 
-        ; Amplitude -> PSG volume 0-15 in B.
+        ; Amplitude -> PSG fixed volume 0-15, or hardware-envelope bit 4.
+        ; BBC negative values select fixed volume; positive values select a
+        ; previously defined envelope number.
         LD      A,B
         OR      A
         JR      NZ,SOUNDNEG
-        XOR     A               ; amplitude >= 0 -> off
+        LD      A,C
+        OR      A
+        JR      Z,SOUNDVOL      ; zero = silence
+        LD      A,(ENVNUM)
+        CP      C
+        JP      NZ,SOUNDBAD
+        LD      A,10H
         JR      SOUNDVOL
 SOUNDNEG:
         XOR     A
         SUB     C
         CP      16
         JR      C,SOUNDVOL
-        LD      A,15
+        LD      A,15            ; clamp fixed volume at the PSG maximum
 SOUNDVOL:
         LD      B,A
 
-        ; Pitch -> 12-bit PSG period in HL ((pitch+1)*16, clamped to 4095).
-        LD      A,D
-        OR      A
-        JR      NZ,SOUNDPCLAMP
-        LD      L,E
-        LD      H,0
-        INC     HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        ADD     HL,HL
-        LD      A,H
-        CP      10H
-        JR      NZ,SOUNDPOK
-SOUNDPCLAMP:
-        LD      HL,0FFFH
-SOUNDPOK:
-
         POP     AF              ; A = channel
         OR      A
-        JR      Z,SOUNDNOISE
+        JP      Z,SOUNDNOISE
+        PUSH    AF
 
+        ; Approximate one octave linearly, then halve the period per octave.
+        LD      A,E
+        LD      C,0
+SOUNDOCTAVE:
+        CP      48
+        JR      C,SOUNDNOTE
+        SUB     48
+        INC     C
+        JR      SOUNDOCTAVE
+SOUNDNOTE:
+        LD      L,A
+        LD      H,0
+        LD      D,H
+        LD      E,L
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL           ; 16*r
+        ADD     HL,DE
+        ADD     HL,DE
+        ADD     HL,DE           ; 19*r
+        EX      DE,HL
+        LD      HL,1812
+        OR      A
+        SBC     HL,DE           ; lowest octave: period 1812 down to 919
+        LD      A,C
+        OR      A
+        JR      Z,SOUNDPITCHDONE
+SOUNDPITCHSHIFT:
+        SRL     H
+        RR      L
+        DEC     C
+        JR      NZ,SOUNDPITCHSHIFT
+SOUNDPITCHDONE:
+
+        POP     AF              ; A = channel 1..3
         ; Tone channel (A = 1..3): period low/high and volume.
         DEC     A               ; A = 0..2
         LD      C,A
         ADD     A,8             ; volume register (8,9,10)
         LD      (SOUNDREG),A
-        LD      A,(ENVON)
-        OR      A
         LD      E,B             ; E = fixed volume
-        JR      Z,SOUNDVOLSET
-        LD      E,10H           ; hardware envelope mode (bit 4)
 SOUNDVOLSET:
         LD      A,(SOUNDREG)
         CALL    WRTPSG
+        BIT     4,B
+        CALL    NZ,SOUNDTRIGENV
         LD      A,C
         ADD     A,A             ; low period register (0,2,4)
         LD      E,L
@@ -1488,28 +1497,38 @@ SOUNDVOLSET:
         INC     A               ; high period register (1,3,5)
         LD      E,H
         CALL    WRTPSG
+        LD      A,C
+        OR      A
+        JR      NZ,SOUNDDUR     ; only channel A can have been changed to noise
+        LD      A,7
+        CALL    RDPSG
+        RES     0,A             ; tone A on
+        SET     3,A             ; noise A off
+        LD      E,A
+        LD      A,7
+        CALL    WRTPSG
         JR      SOUNDDUR
 
         ; Noise channel: route noise onto channel A, write period and volume.
 SOUNDNOISE:
-        ; A = 0 (channel), B = volume, E = pitch (low byte).
         LD      A,E
-        SRL     A
-        SRL     A
-        SRL     A               ; noise period = pitch >> 3 (0-31)
+        AND     7
+        CPL
+        AND     7
+        ADD     A,A
+        ADD     A,A
+        INC     A               ; AY period 29..1 for BBC noise pitch 0..7
         LD      E,A
         LD      A,6
         CALL    WRTPSG          ; noise period R6
         LD      A,8
         LD      (SOUNDREG),A
-        LD      A,(ENVON)
-        OR      A
         LD      E,B             ; E = fixed volume
-        JR      Z,SOUNDNOISEVOL
-        LD      E,10H           ; hardware envelope mode (bit 4)
 SOUNDNOISEVOL:
         LD      A,(SOUNDREG)
         CALL    WRTPSG          ; volume R8
+        BIT     4,B
+        CALL    NZ,SOUNDTRIGENV
         LD      A,7
         CALL    RDPSG
         SET     0,A             ; tone A off
@@ -1521,20 +1540,22 @@ SOUNDNOISEVOL:
 SOUNDDUR:
         POP     DE              ; duration
         LD      A,D
-        OR      A
-        JR      NZ,SOUNDXEQ     ; >255 -> leave playing
+        INC     A
+        JR      Z,SOUNDXEQ      ; negative duration, including -1: indefinite
+        DEC     A
+        JR      NZ,SOUNDXEQ     ; values over 255 remain playing
         LD      A,E
         OR      A
-        JR      Z,SOUNDXEQ      ; 0 -> indefinite
-        ; Wait duration*3 JIFFY ticks (about 50 ms per twentieth at 60 Hz).
+        JR      Z,SOUNDSILENCE
+        ; Convert duration*5 centiseconds to the local 50/60 Hz tick count.
         LD      L,E
         LD      H,0
         LD      B,H
         LD      C,L
         ADD     HL,HL
+        ADD     HL,HL
         ADD     HL,BC
-        LD      B,H
-        LD      C,L             ; BC = target ticks
+        CALL    CENTSTOTICKS    ; BC = target ticks
         LD      DE,(JIFFY)      ; DE = start
 SOUNDWAIT:
         LD      HL,(JIFFY)
@@ -1543,6 +1564,7 @@ SOUNDWAIT:
         OR      A
         SBC     HL,BC
         JR      C,SOUNDWAIT
+SOUNDSILENCE:
         LD      A,(SOUNDREG)
         LD      E,0
         CALL    WRTPSG          ; silence the channel
@@ -1551,10 +1573,16 @@ SOUNDWAIT:
 SOUNDXEQ:
         JP      XEQ
 
+SOUNDTRIGENV:
+        LD      A,(ENVSHAPE)
+        LD      E,A
+        LD      A,13
+        JP      WRTPSG
+
 SOUNDBAD:
         XOR     A
         CALL    EXTERR
-        DEFM    'Sound argument out of range'
+        DEFM    'Sound/envelope argument'
         DEFB    0
 
 ; ADVAL(n): read the controller state.
@@ -1576,7 +1604,10 @@ ADVAL:  CALL    EXPRI
         SRL     A               ; n=1 -> 0, n=3 -> 1
         INC     A               ; selector 1 or 2
         CALL    GTTRIG
-        JR      ADVALRET
+        OR      A
+        JR      Z,ADVALRET
+        LD      HL,-1           ; BBC true, rather than unsigned 255
+        JR      ADVALPACK
 ADVALSTICK:
         SRL     A               ; n=0 -> 0, n=2 -> 1
         INC     A               ; selector 1 or 2
@@ -1587,6 +1618,7 @@ ADVALZERO:
 ADVALRET:
         LD      L,A
         LD      H,0
+ADVALPACK:
         EXX
         XOR     A
         LD      C,A

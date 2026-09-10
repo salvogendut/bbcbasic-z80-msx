@@ -27,6 +27,10 @@ after time 7.00 {
 }
 after time 8.00 {
     puts $::handle "MODE0_SCRMOD=[peek 0xFCAF]"
+    type_via_keybuf "MODE 5\r"
+}
+after time 9.00 {
+    puts $::handle "MODE5_MSX1_SCRMOD=[peek 0xFCAF]"
     close $::handle
     exit
 }

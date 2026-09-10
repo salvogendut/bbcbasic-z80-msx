@@ -23,6 +23,7 @@
         EXTRN   SPRITECMD
 
         GLOBAL  CLRSCN
+        GLOBAL  CENTSTOTICKS
         GLOBAL  GETCSR
         GLOBAL  GETEXT
         GLOBAL  GETIME
@@ -81,7 +82,7 @@ OSINIT: CALL    INITXT
         CALL    KILBUF
         XOR     A
         LD      HL,PSTBASE
-        LD      B,61            ;MSX ADAPTER STATE, 8300H-833CH
+        LD      B,62            ;MSX ADAPTER STATE, 8300H-833DH
 INITCLEAR:
         LD      (HL),A
         INC     HL

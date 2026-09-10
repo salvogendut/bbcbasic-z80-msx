@@ -22,23 +22,25 @@ The P1 adapter provides:
 - Escape polling without consuming ordinary pending keys;
 - `MODE n` screen selection for MSX Screen `n`: `MODE 0` text, `MODE 1`
   Graphics I, `MODE 2` Graphics II, `MODE 3` multicolor, and `MODE 5`-`8` the
-  MSX2 V9938/V9958 bitmap screens (extended register programming plus the
-  default 16-colour palette) plus `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
+  MSX2 V9938/V9958 bitmap screens through the published `CHGMOD`/SUB-ROM
+  interfaces, plus `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
   `POINT(x,y)`, and `PLOT`: lines and pure moves in modes 0-63 (solid for
   0-15, dotted for 16-31, with modes 32-63 rendering dotted in this
   milestone), single points in modes 64-79, and filled triangles in modes
   80-95 using the two most recently visited points; absolute modes set
   mode bit 2 and relative modes are clear;
 - `SOUND channel, amplitude, pitch, duration` mapped onto the PSG: channel 0
-  drives the noise channel and channels 1-3 drive tone A/B/C, amplitude 0..-15
-  maps to the 4-bit volume, pitch 0-255 maps to a linear 12-bit period (a
-  logarithmic BBC-pitch approximation), and a positive duration is a
+  drives the noise channel and channels 1-3 drive tone A/B/C, amplitudes
+  -15..0 map to fixed 4-bit volume and positive amplitudes select the most
+  recently defined envelope, pitch 0-255 maps to a compact octave-linear
+  approximation, duration -1 leaves a note playing, and duration 0..254 is a
   synchronous JIFFY-timed note that silences the channel afterwards;
 - `ADVAL(n)` returning joystick 1/2 direction for `n` 0/2 and trigger state
   for `n` 1/3, a digital approximation of the BBC analogue channels;
 - `ENVELOPE` mapping the attack time and rate onto the AY-3-8910 hardware
-  envelope (period R11/R12 and shape R13); subsequent `SOUND` notes use the
-  hardware envelope, while the full BBC ADSR and pitch sweep are approximated;
+  envelope (period R11/R12 and shape R13); a subsequent `SOUND` whose positive
+  amplitude selects that envelope retriggers it, while the full BBC ADSR and
+  pitch sweep are explicitly approximated;
 - `*SPRITE n,x,y,pattern,colour`, `*SPRITEOFF n`, `*SPRITEPAT n,b0..b7`, and
   `*SPRITECLR` OSCLI commands driving the Screen 2 VDP sprite attribute and
   pattern tables (visible only after `MODE 2`);
@@ -56,23 +58,24 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | `4000h-4012h` | cartridge header and entry veneer |
 | `4013h-4247h` | console adapter |
 | `4248h-434Dh` | sprite command adapter (`*SPRITE` etc.) |
-| `4350h-43F5h` | MSX2 bitmap pixel adapter |
+| `4350h-43F7h` | MSX2 bitmap pixel adapter |
 | `4400h-74C1h` | preserved BBC BASIC language core |
-| `74C2h-7E49h` | graphics adapter (Graphics I/II, multicolor, sound) |
-| `7E4Ah-7FEDh` | cassette program storage adapter |
+| `74C2h-7E45h` | graphics adapter (Graphics I/II, multicolor, sound) |
+| `7E46h-7FE9h` | cassette program storage adapter |
 | `7FF0h-7FFFh` | RainBIOS payload descriptor v1 |
 | `8000h-82FFh` | BBC BASIC fixed RAM |
-| `8300h-833Ch` | adapter state and cassette scratch data |
-| `833Dh-F2FFh` | initial program/dynamic-memory window |
+| `8300h-833Dh` | adapter state and cassette scratch data |
+| `833Eh-F2FFh` | initial program/dynamic-memory window |
 
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
-The MSX2 bitmap screens (`MODE 5`-`8`) are programmed through the extended VDP
-registers and default palette, cleared with `FILVRM`, and support `MOVE`/
-`DRAW`/`PLOT`/`POINT` at the 4bpp (Screen 5), 2bpp (Screen 6), and 8bpp
-(Screens 7/8) resolutions. Screen 6 (512 pixels wide) only addresses the left
-256-pixel half until a 16-bit X coordinate is introduced, and its two-bit
-pixels truncate the mapped colour. In `MODE 5`-`8` the BIOS character output
-is suppressed so text cannot corrupt the bitmap. Random-access storage and a
+The MSX2 bitmap screens (`MODE 5`-`8`) are initialized and fully cleared by
+the published main-BIOS `CHGMOD` entry. Pixel access above 16 KiB uses the
+published SUB-ROM `WRTVRM`/`RDVRM` entries. `MOVE`/`DRAW`/`PLOT`/`POINT`
+support Screen 5 and Screen 7 at 4bpp, Screen 6 at 2bpp, and Screen 8 at 8bpp.
+Screens 6 and 7 are 512 pixels wide but currently expose the left 256-pixel
+half until a 16-bit X coordinate is introduced. Screen 6 maps logical colours
+to its four physical colours. In `MODE 5`-`8` BIOS character output is
+suppressed so text cannot corrupt the bitmap. Random-access storage and a
 RainBIOS return contract are also later milestones.
 
 The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
@@ -99,6 +102,11 @@ reference pixels and colours, checks `POINT()` result 7, then runs a
 relative `PLOT 0` / `PLOT 81` triangles, verifies the triangle shape and
 final cursor history, captures the Graphics II screen, and retains the same
 ROM-write guard.
+`tools/openmsx_msx2.tcl` uses the open-source C-BIOS MSX2 machine to verify
+all four bitmap modes, raw Screen 6/7 packing, complete `CLG`, and distinct
+pixels on opposite sides of the former 16 KiB alias boundary. The matching
+1983 tests run on the Omega unified RainBIOS image and also render a hardware
+sprite while executing a PSG note.
 
 Program tapes contain a long-leader header block (`D0h` repeated ten times
 plus a padded six-byte name) and a short-leader data block (start, inclusive

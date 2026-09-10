@@ -71,7 +71,7 @@ BS      EQU     08H
 BEL     EQU     07H
 DEL     EQU     7FH
 
-RAMTOP  EQU     0F300H          ;BELOW THE STANDARD F380H WORK AREA
+RAMTOP  EQU     0E6E0H          ;LEAVES GUARD, FAT12 WORK, AND DISK STATE ABOVE
 
 ; Initialise a conservative 40-column text console and private adapter state.
 ; Output: HL = first byte available to the BASIC program

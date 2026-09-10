@@ -16,8 +16,12 @@
 
         GLOBAL  OSLOAD
         GLOBAL  OSSAVE
+        GLOBAL  CASSSAVE
+        GLOBAL  CASSLOAD
 
 ; Published MSX BIOS entry points.
+RAINFS_SIGNATURE EQU 0165H
+RAINFS_ENTRY     EQU 0169H
 TAPION  EQU     00E1H
 TAPIN   EQU     00E4H
 TAPIOF  EQU     00E7H
@@ -27,11 +31,42 @@ TAPOOF  EQU     00F0H
 
 CR      EQU     0DH
 
+; RainBIOS owns a versioned page-0 storage dispatcher. It receives all
+; SAVE/LOAD requests so it can recognize the explicit A: prefix; unprefixed
+; names return through the cassette entry pointers published in the cartridge
+; header. On other firmware, require the complete signature before using the
+; private entry and retain the legacy cassette behavior otherwise.
+; A = 0 for SAVE, 1 for LOAD.
+OSSAVE: XOR     A
+        JR      MSXSTORAGE
+OSLOAD: LD      A,1
+MSXSTORAGE:
+        PUSH    AF
+        LD      A,(RAINFS_SIGNATURE)
+        CP      'R'
+        JR      NZ,MSXSTORAGELEGACY
+        LD      A,(RAINFS_SIGNATURE+1)
+        CP      'B'
+        JR      NZ,MSXSTORAGELEGACY
+        LD      A,(RAINFS_SIGNATURE+2)
+        CP      'F'
+        JR      NZ,MSXSTORAGELEGACY
+        LD      A,(RAINFS_SIGNATURE+3)
+        CP      'S'
+        JR      NZ,MSXSTORAGELEGACY
+        POP     AF
+        JP      RAINFS_ENTRY
+MSXSTORAGELEGACY:
+        POP     AF
+        OR      A
+        JR      NZ,CASSLOAD
+
 ; OSSAVE
 ;   HL = CR-terminated filename
 ;   DE = first byte
 ;   BC = byte count
-OSSAVE: LD      (TAPEADDRESS),DE
+CASSSAVE:
+        LD      (TAPEADDRESS),DE
         LD      (TAPECOUNT),BC
         CALL    TAPEFILENAME
 
@@ -82,7 +117,8 @@ OSSAVEDONE:
 ;   DE = destination
 ;   BC = maximum byte count
 ;   Carry reset means the matching program does not fit.
-OSLOAD: LD      (TAPEADDRESS),DE
+CASSLOAD:
+        LD      (TAPEADDRESS),DE
         LD      (TAPECOUNT),BC
         CALL    TAPEFILENAME
 OSLOADSEARCH:
@@ -184,18 +220,12 @@ TAPEFILENAMEPADNEXT:
 ; Construct start, inclusive end, and execute=0 metadata.
 TAPEMAKEINFO:
         LD      DE,(TAPEADDRESS)
-        LD      A,E
-        LD      (TAPEMETA),A
-        LD      A,D
-        LD      (TAPEMETA+1),A
-        LD      HL,(TAPEADDRESS)
+        LD      (TAPEMETA),DE
+        EX      DE,HL
         LD      BC,(TAPECOUNT)
         ADD     HL,BC
         DEC     HL
-        LD      A,L
-        LD      (TAPEMETA+2),A
-        LD      A,H
-        LD      (TAPEMETA+3),A
+        LD      (TAPEMETA+2),HL
         XOR     A
         LD      (TAPEMETA+4),A
         LD      (TAPEMETA+5),A
@@ -253,17 +283,15 @@ TAPENOTFOUND:
 TAPEREADERRORCLOSE:
         CALL    TAPIOF
 TAPEREADERROR:
+TAPEERROR:
         LD      A,198
         CALL    EXTERR
-        DEFM    'Tape read error'
+        DEFM    'Tape error'
         DEFB    0
 
 TAPEWRITEERROR:
         CALL    TAPOOF
-        LD      A,198
-        CALL    EXTERR
-        DEFM    'Tape write error'
-        DEFB    0
+        JR      TAPEERROR
 
 BINARYTYPE:
         DEFB    0D0H,0D0H,0D0H,0D0H,0D0H

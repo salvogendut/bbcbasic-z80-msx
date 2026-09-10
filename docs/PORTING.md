@@ -57,8 +57,9 @@ commands follow only after the interpreter is stable.
 5. **Complete:** boot to the BBC BASIC prompt; exercise editing, integer and
    floating-point expressions, strings, a stored program, error reporting,
    the clock, and timed keyboard input.
-6. **Graphics, cassette, media, and MSX2 slices complete:** the MSX1 graphics
-   subset, sequential tape storage, PSG sound/envelope approximation,
+6. **Graphics, cassette, floppy-program, media, and MSX2 slices complete:**
+   the MSX1 graphics subset, sequential tape storage, RainBIOS FAT12 program
+   SAVE/LOAD, PSG sound/envelope approximation,
    controller reads, Screen 2 sprites, and MSX2 Screens 5-8 are tested with
    openMSX and 1983. Random-access storage and a RainBIOS return contract
    remain later work.
@@ -78,7 +79,8 @@ initial MSX build will target:
 - payload ROM in page 1 (`4000h-7FFFh`);
 - aligned BBC state at `8000h-82FFh`;
 - adapter state at `8300h-833Dh` and program/dynamic memory beginning at
-  `833Eh`;
+  `833Eh`, ending below `E6E0h` so RainBIOS can reserve a guard, a FAT12
+  workspace through `EFFFh`, and disk-system state at `F000h-F2FFh`;
 - initialized RAM in pages 2 and 3, requiring at least 32 KiB for the first
   supported profile.
 

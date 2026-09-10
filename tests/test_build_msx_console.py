@@ -23,6 +23,8 @@ from tools.build_msx_console import (
     validate_map,
 )
 
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+
 
 class MsxConsoleBuildTests(unittest.TestCase):
     def test_memory_profile_is_fixed(self) -> None:
@@ -38,6 +40,7 @@ class MsxConsoleBuildTests(unittest.TestCase):
         self.assertEqual(DESCRIPTOR_ADDRESS, 0x7FF0)
         self.assertEqual(len(EXPECTED_DESCRIPTOR), 16)
         self.assertEqual(sum(EXPECTED_DESCRIPTOR) & 0xFF, 0)
+        self.assertEqual(EXPECTED_DESCRIPTOR[12:14], bytes((0xE0, 0xE6)))
         if EXPECTED_SHA256:
             self.assertRegex(EXPECTED_SHA256, r"^[0-9a-f]{64}$")
 
@@ -53,6 +56,13 @@ class MsxConsoleBuildTests(unittest.TestCase):
         self.assertIn("build/msx_sprite.rel", command)
         self.assertIn("build/msx_msx2.rel", command)
 
+    def test_rainbios_dispatch_requires_the_complete_signature(self) -> None:
+        source = (ROOT / "platform" / "msx" / "storage.z80").read_text()
+        for offset, byte in enumerate("RBFS"):
+            suffix = "" if offset == 0 else f"+{offset}"
+            self.assertIn(f"LD      A,(RAINFS_SIGNATURE{suffix})", source)
+            self.assertIn(f"CP      '{byte}'", source)
+
     def test_link_map_guard_accepts_the_fixed_windows(self) -> None:
         link_map = """\
 4013   0235   P  -          CONSOLE  build/msx_console.rel
@@ -63,7 +73,7 @@ class MsxConsoleBuildTests(unittest.TestCase):
 6132   0796   P  -          EVAL.Z8  build/eval.rel
 68c8   0bfa   P  -          FPP.Z80  build/fpp.rel
 74c2   0984   P  -          GRAPHIC  build/msx_graphics.rel
-7e46   01a4   P  -          STORAGE  build/msx_storage.rel
+7e46   01aa   P  -          STORAGE  build/msx_storage.rel
 8000   0300   P  -          RAM.Z80  build/ram.rel
 8300   003e   P  -          STATE.Z  build/msx_state.rel
 """

@@ -35,10 +35,10 @@ The subsequent MSX build keeps the cartridge veneer at `4000h`, places the
 independently written console adapter at `4013h-4247h`, sprite adapter at
 `4248h-434Dh`, MSX2 pixel adapter at `4350h-43F7h`, the unchanged core at
 `4400h-74C1h`, graphics/media adapter at `74C2h-7E45h`, and cassette storage
-at `7E46h-7FE9h`. RainBIOS payload descriptor v1 remains at `7FF0h-7FFFh`,
+at `7E46h-7FEFh`. RainBIOS payload descriptor v1 remains at `7FF0h-7FFFh`,
 fixed RAM at `8000h-82FFh`, and 62 adapter-state bytes at `8300h-833Dh`. Its
 16 KiB ROM has SHA-256
-`5f8d03ea3c9a3ae4b7113ae6d4799fdb1d4800cc4777fd5ffcbac35ad24a5027`.
+`06d7935ee22650e89c6526bb4b0d457e320060f17ebf809fe220f719d1e15fc5`.
 The build driver parses the linker map and rejects boundary overlap.
 
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking
@@ -58,8 +58,9 @@ OSOPEN  OSRDCH  OSSAVE  OSSHUT  OSSTAT  OSWRCH PROMPT
 PUTCSR  PUTIME  PUTPTR  RESET   TRAP
 ```
 
-The cassette slice implements `OSLOAD` and `OSSAVE`; remaining channel and
-random-access calls retain explicit unsupported errors. All symbols have
+The storage slice implements `OSLOAD` and `OSSAVE`: ordinary names use the
+cassette adapter, while `A:` names use the versioned RainBIOS FAT12 bridge.
+Remaining channel and random-access calls retain explicit unsupported errors. All symbols have
 documented flag and register behaviour.
 
 ## Static findings
@@ -109,4 +110,6 @@ while 1983 independently checks the rendered multicolour frame.
 
 The three page alignments and stack bound are fixed by the link map and
 `OSINIT`: `ACCS=8000h`, `BUFFER=8100h`, `STAVAR=8200h`, user RAM begins at
-`833Ah`, and the initial stack/top-of-memory value is `F300h`.
+`833Eh`, and the initial stack/top-of-memory value is `E6E0h`. The reduction
+reserves a 256-byte guard, RainBIOS's 2080-byte FAT12 work area through
+`EFFFh`, and the disk system's private `F000h-F2FFh` state.

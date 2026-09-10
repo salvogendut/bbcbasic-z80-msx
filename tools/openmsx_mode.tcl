@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
-# Exercise the BBC BASIC MODE statement and record the resulting SCRMOD
-# work-area value after each MSX screen mode switch.
+# Exercise the BBC BASIC MODE statement on an MSX1 and record the resulting
+# SCRMOD work-area value after each Screen 0-3 mode switch.
 
 set throttle off
 
@@ -23,10 +23,10 @@ after time 6.00 {
 }
 after time 7.00 {
     puts $::handle "MODE2_SCRMOD=[peek 0xFCAF]"
-    type_via_keybuf "MODE 7\r"
+    type_via_keybuf "MODE 0\r"
 }
 after time 8.00 {
-    puts $::handle "MODE7_SCRMOD=[peek 0xFCAF]"
+    puts $::handle "MODE0_SCRMOD=[peek 0xFCAF]"
     close $::handle
     exit
 }

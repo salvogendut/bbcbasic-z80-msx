@@ -20,8 +20,10 @@ The P1 adapter provides:
 - cursor position tracking;
 - a settable centisecond counter for both 50 Hz and 60 Hz machines;
 - Escape polling without consuming ordinary pending keys;
-- Graphics I `MODE 1`, Graphics II `MODE 2`, multicolor `MODE 3`, and text
-  `MODE 7` screen selection plus `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
+- `MODE n` screen selection for MSX Screen `n`: `MODE 0` text, `MODE 1`
+  Graphics I, `MODE 2` Graphics II, `MODE 3` multicolor, and `MODE 5`-`8` the
+  MSX2 V9938/V9958 bitmap screens (extended register programming plus the
+  default 16-colour palette) plus `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
   `POINT(x,y)`, and `PLOT`: lines and pure moves in modes 0-63 (solid for
   0-15, dotted for 16-31, with modes 32-63 rendering dotted in this
   milestone), single points in modes 64-79, and filled triangles in modes
@@ -63,8 +65,10 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | `833Ch-F2FFh` | initial program/dynamic-memory window |
 
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
-MSX2 validation, random-access storage, and a RainBIOS return contract remain
-later milestones.
+The MSX2 bitmap screens (`MODE 5`-`8`) are programmed through the extended VDP
+registers and default palette; bitmap clearing and plot/point at the MSX2
+resolutions remain later work. Random-access storage and a RainBIOS return
+contract are also later milestones.
 
 The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
 `8000h-F2FFh` RAM window, two contiguous RAM pages, and required console,

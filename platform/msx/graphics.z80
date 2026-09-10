@@ -63,6 +63,7 @@
 ; Published MSX BIOS entry points and work-area state.
 RDVRM   EQU     004AH
 WRTVRM  EQU     004DH
+WRTVDP  EQU     0047H
 FILVRM  EQU     0056H
 INITXT  EQU     006CH
 INIT32  EQU     006FH
@@ -70,31 +71,92 @@ INITGRP EQU     0072H
 INIMLT  EQU     0075H
 SCRMOD  EQU     0FCAFH
 
-; MODE 1 = Screen 1 (Graphics I), MODE 2 = Screen 2 (Graphics II),
-; MODE 3 = Screen 3 (multicolor), MODE 7 = Screen 0 (40-column text).
+; MODE n selects MSX Screen n for n in 0,1,2,3,5,6,7,8; MODE 4 and >=9 are
+; rejected. Screens 5-8 require an MSX2 V9938/V9958 VDP.
 MODE:   CALL    EXPRI
         EXX
         LD      A,H
         OR      A
         JP      NZ,GRAPHERR
         LD      A,L
-        CP      1
-        JR      Z,MODE1
-        CP      2
-        JR      Z,MODE2
+        CP      9
+        JP      NC,GRAPHERR
+        CP      4
+        JP      Z,GRAPHERR
+        CP      5
+        JP      NC,MODE_MSX2
+        OR      A
+        JR      Z,MODE0
         CP      3
         JR      Z,MODE3
-        CP      7
-        JP      NZ,GRAPHERR
-        CALL    INITXT
+        CP      2
+        JR      Z,MODE2
+        CALL    INIT32          ; MODE 1 -> Screen 1
         JP      XEQ
-MODE1:  CALL    INIT32
+MODE0:  CALL    INITXT           ; MODE 0 -> Screen 0
         JP      XEQ
-MODE2:  CALL    INITGRP
+MODE2:  CALL    INITGRP          ; MODE 2 -> Screen 2
         CALL    RESETGRAPH
         JP      XEQ
-MODE3:  CALL    INIMLT
+MODE3:  CALL    INIMLT           ; MODE 3 -> Screen 3
         JP      XEQ
+
+; MODE 5-8: program the V9938 mode registers R0-R11 and the default palette.
+MODE_MSX2:
+        SUB     5               ; A = 0..3
+        LD      H,0
+        LD      L,A
+        LD      D,H
+        LD      E,L             ; DE = index
+        ADD     HL,HL
+        ADD     HL,HL
+        LD      B,H
+        LD      C,L             ; BC = index*4
+        ADD     HL,HL
+        ADD     HL,BC           ; HL = index*12
+        LD      DE,SCR5_REGS
+        ADD     HL,DE           ; HL = register table
+        LD      C,0
+MODE_MSX2_REGLOOP:
+        LD      A,(HL)
+        LD      B,A             ; B = data
+        PUSH    BC
+        CALL    WRTVDP
+        POP     BC
+        INC     HL
+        INC     C
+        LD      A,C
+        CP      12
+        JR      NZ,MODE_MSX2_REGLOOP
+        ; Set R16 = 0 (palette index), then write 32 palette bytes.
+        LD      B,0
+        LD      C,16
+        CALL    WRTVDP
+        LD      HL,SCR_PALETTE
+        LD      B,32
+MODE_MSX2_PALLOOP:
+        LD      A,(HL)
+        OUT     (9AH),A
+        INC     HL
+        DJNZ    MODE_MSX2_PALLOOP
+        JP      XEQ
+
+; V9938 register values for Screens 5-8 (R0-R11).
+SCR5_REGS:
+        DEFB    06H,60H,1FH,00H,00H,0EFH,0FH,01H,08H,00H,00H,00H
+SCR6_REGS:
+        DEFB    08H,60H,1FH,00H,00H,0EFH,0FH,01H,08H,00H,00H,00H
+SCR7_REGS:
+        DEFB    0AH,60H,1FH,00H,00H,0F7H,1EH,01H,08H,00H,00H,01H
+SCR8_REGS:
+        DEFB    0EH,60H,1FH,00H,00H,0F7H,1EH,01H,08H,00H,00H,01H
+
+; Default 0GRB palette (16 entries of two bytes each).
+SCR_PALETTE:
+        DEFB    00H,00H,00H,00H,11H,06H,33H,07H
+        DEFB    17H,01H,27H,03H,51H,01H,27H,06H
+        DEFB    71H,01H,73H,03H,61H,06H,64H,06H
+        DEFB    11H,04H,65H,02H,55H,05H,77H,07H
 
 ; Clear the Graphics II bitmap and reset the graphics cursor to BBC (0,0).
 CLG:    LD      A,(SCRMOD)

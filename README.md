@@ -11,8 +11,9 @@ The cassette milestone is bootable. It packages the unchanged language
 core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
 editing, integer and floating-point expressions, strings, stored programs,
-`TIME`, timed `INKEY`, TMS9918 screen modes (`MODE 1` Graphics I,
-`MODE 2` Graphics II, `MODE 3` multicolor, `MODE 7` text), PSG-backed
+`TIME`, timed `INKEY`, screen selection via `MODE n` for MSX Screen `n` —
+`MODE 0` text, `MODE 1` Graphics I, `MODE 2` Graphics II, `MODE 3` multicolor,
+and `MODE 5`-`8` the MSX2 V9938/V9958 bitmap screens — plus PSG-backed
 `SOUND`/`ENVELOPE` with a controller-reading `ADVAL`, hardware sprites via
 `*SPRITE`/`*SPRITEPAT`/`*SPRITEOFF`/`*SPRITECLR`, and sequential program
 `SAVE`/`LOAD` on cassette. Random-access file channels remain future work and
@@ -126,6 +127,14 @@ resulting `SCRMOD` work-area value:
 
 ```sh
 make test-msx-mode-openmsx \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The MSX2 test boots the cartridge on the 1983 Omega MSX2 (V9958) model, types
+`MODE 5`-`8`, and verifies the VDP mode register after each switch:
+
+```sh
+make test-msx-msx2-modes-1983 \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 

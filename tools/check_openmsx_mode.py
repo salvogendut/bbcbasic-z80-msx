@@ -19,7 +19,7 @@ def validate_report(text: str) -> dict[str, str]:
         mode1 = int(values["MODE1_SCRMOD"])
         mode3 = int(values["MODE3_SCRMOD"])
         mode2 = int(values["MODE2_SCRMOD"])
-        mode7 = int(values["MODE7_SCRMOD"])
+        mode0 = int(values["MODE0_SCRMOD"])
     except (KeyError, ValueError) as error:
         raise ValueError("missing or invalid SCRMOD report") from error
 
@@ -29,8 +29,8 @@ def validate_report(text: str) -> dict[str, str]:
         raise ValueError(f"MODE 3 -> SCRMOD {mode3}, expected 3")
     if mode2 != 2:
         raise ValueError(f"MODE 2 -> SCRMOD {mode2}, expected 2")
-    if mode7 != 0:
-        raise ValueError(f"MODE 7 -> SCRMOD {mode7}, expected 0")
+    if mode0 != 0:
+        raise ValueError(f"MODE 0 -> SCRMOD {mode0}, expected 0")
     return values
 
 
@@ -45,7 +45,7 @@ def main() -> int:
     print(
         "validated openMSX BBC BASIC MODE program: "
         f"SCRMOD {values['MODE1_SCRMOD']}/{values['MODE3_SCRMOD']}/"
-        f"{values['MODE2_SCRMOD']}/{values['MODE7_SCRMOD']}"
+        f"{values['MODE2_SCRMOD']}/{values['MODE0_SCRMOD']}"
     )
     return 0
 

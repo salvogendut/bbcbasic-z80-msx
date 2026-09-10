@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: BSD-3-Clause
-"""Validate the openMSX BBC BASIC SOUND PSG register report."""
+"""Validate the openMSX BBC BASIC SOUND/ENVELOPE PSG register report."""
 
 from __future__ import annotations
 
@@ -22,6 +22,10 @@ def validate_report(text: str) -> dict[str, str]:
         vol_c = int(values["VOL_C"], 16)
         noise = int(values["NOISE_PERIOD"], 16)
         mixer = int(values["MIXER"], 16)
+        env_period = [int(value, 16) for value in values["ENV_PERIOD"].split(",")]
+        env_shape = int(values["ENV_SHAPE"], 16)
+        tone_b = [int(value, 16) for value in values["TONE_B_PERIOD"].split(",")]
+        vol_b = int(values["VOL_B"], 16)
     except (KeyError, ValueError) as error:
         raise ValueError("missing or invalid PSG register report") from error
 
@@ -39,6 +43,16 @@ def validate_report(text: str) -> dict[str, str]:
         raise ValueError(f"mixer {mixer:#04X}: tone A was not disabled")
     if mixer & 0x08:
         raise ValueError(f"mixer {mixer:#04X}: noise A was not enabled")
+    if env_period != [0x0A, 0x00]:
+        raise ValueError(f"envelope period {env_period}, expected [0x0A, 0x00]")
+    if env_shape != 0x0C:
+        raise ValueError(f"envelope shape {env_shape:#04X}, expected 0x0C")
+    if tone_b != [0x70, 0x09]:
+        raise ValueError(f"tone B period {tone_b}, expected [0x70, 0x09]")
+    if vol_b != 0x10:
+        raise ValueError(
+            f"channel B volume {vol_b:#04X}, expected 0x10 (envelope mode)"
+        )
     return values
 
 
@@ -51,11 +65,11 @@ def main() -> int:
     except (OSError, ValueError) as error:
         parser.error(str(error))
     print(
-        "validated openMSX BBC BASIC SOUND program: "
+        "validated openMSX BBC BASIC SOUND/ENVELOPE program: "
         f"tone A={values['TONE_A_PERIOD']} "
         f"tone C={values['TONE_C_PERIOD']} "
-        f"vol A/C={values['VOL_A']}/{values['VOL_C']} "
-        f"noise={values['NOISE_PERIOD']} mixer={values['MIXER']}"
+        f"envelope={values['ENV_PERIOD']}/{values['ENV_SHAPE']} "
+        f"vol B={values['VOL_B']}"
     )
     return 0
 

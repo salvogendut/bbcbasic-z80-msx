@@ -32,6 +32,9 @@ The P1 adapter provides:
   synchronous JIFFY-timed note that silences the channel afterwards;
 - `ADVAL(n)` returning joystick 1/2 direction for `n` 0/2 and trigger state
   for `n` 1/3, a digital approximation of the BBC analogue channels;
+- `ENVELOPE` mapping the attack time and rate onto the AY-3-8910 hardware
+  envelope (period R11/R12 and shape R13); subsequent `SOUND` notes use the
+  hardware envelope, while the full BBC ADSR and pitch sweep are approximated;
 - sequential cassette program `SAVE` and `LOAD`, with case-insensitive
   six-character names and the standard MSX binary-tape envelope;
 - an explicit `Storage unsupported` error for random-access channels and
@@ -54,8 +57,8 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | `833Ah-F2FFh` | initial program/dynamic-memory window |
 
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
-MSX2 validation, envelope shaping (`ENVELOPE`), random-access storage, and a
-RainBIOS return contract remain later milestones.
+MSX2 validation, random-access storage, and a RainBIOS return contract remain
+later milestones.
 
 The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
 `8000h-F2FFh` RAM window, two contiguous RAM pages, and required console,

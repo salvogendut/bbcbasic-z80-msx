@@ -12,9 +12,9 @@ core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
 editing, integer and floating-point expressions, strings, stored programs,
 `TIME`, timed `INKEY`, an initial TMS9918 Graphics II subset, PSG-backed
-`SOUND` with a controller-reading `ADVAL`, and sequential program
-`SAVE`/`LOAD` on cassette. Random-access file channels and envelope shaping
-remain future work and report `Storage unsupported` / `Sorry`.
+`SOUND`/`ENVELOPE` with a controller-reading `ADVAL`, and sequential program
+`SAVE`/`LOAD` on cassette. Random-access file channels remain future work and
+report `Storage unsupported`.
 
 ## Repository branches
 
@@ -101,8 +101,10 @@ make test-msx-graphics-openmsx \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 
-The `SOUND` test types three `SOUND` commands and verifies the resulting PSG
-register state (tone A/C periods, volumes, and the noise-channel mixer):
+The `SOUND`/`ENVELOPE` test types three `SOUND` commands and an `ENVELOPE`
+with a follow-up `SOUND`, then verifies the resulting PSG register state (tone
+A/C/B periods, volumes, the noise-channel mixer, and the hardware envelope
+period/shape):
 
 ```sh
 make test-msx-sound-openmsx \

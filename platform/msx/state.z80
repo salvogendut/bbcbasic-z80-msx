@@ -45,6 +45,7 @@
         GLOBAL  TAPEADDRESS
         GLOBAL  TAPECOUNT
         GLOBAL  SOUNDREG
+        GLOBAL  ENVON
 
 PSTBASE:
 TIMEOFF:        DEFS    4
@@ -86,6 +87,7 @@ TAPEMETA:       DEFS    6
 TAPEADDRESS:    DEFS    2
 TAPECOUNT:      DEFS    2
 SOUNDREG:       DEFS    1
+ENVON:          DEFS    1
 PSTEND:
 
 FIN:    END

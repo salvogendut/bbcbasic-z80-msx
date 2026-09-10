@@ -101,8 +101,10 @@ MODE2:  CALL    INITGRP          ; MODE 2 -> Screen 2
 MODE3:  CALL    INIMLT           ; MODE 3 -> Screen 3
         JP      XEQ
 
-; MODE 5-8: program the V9938 mode registers R0-R11 and the default palette.
+; MODE 5-8: program the V9938 mode registers R0-R11 and the default palette,
+; then clear the bitmap.
 MODE_MSX2:
+        PUSH    AF              ; save the mode (5-8)
         SUB     5               ; A = 0..3
         LD      H,0
         LD      L,A
@@ -139,7 +141,25 @@ MODE_MSX2_PALLOOP:
         OUT     (9AH),A
         INC     HL
         DJNZ    MODE_MSX2_PALLOOP
+        POP     AF              ; restore the mode (5-8)
+        CALL    CLEARBITMAP
         JP      XEQ
+
+; Clear the MSX2 bitmap (Screen 5-8) with colour 0 using FILVRM. The bitmap
+; starts at VRAM 0 and is 27136 bytes for Screens 5/6 or 54272 for Screens 7/8.
+; A = mode (5-8).
+CLEARBITMAP:
+        PUSH    AF
+        LD      HL,0
+        LD      BC,6A00H        ; Screen 5/6 bitmap size (27136)
+        POP     AF
+        CP      7
+        JR      C,CLR_SIZE
+        LD      BC,0D400H       ; Screen 7/8 bitmap size (54272)
+CLR_SIZE:
+        XOR     A
+        CALL    FILVRM
+        RET
 
 ; V9938 register values for Screens 5-8 (R0-R11).
 SCR5_REGS:

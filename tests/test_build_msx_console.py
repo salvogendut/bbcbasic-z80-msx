@@ -14,6 +14,7 @@ from tools.build_msx_console import (
     RAM_BASE,
     ROM_BASE,
     ROM_END,
+    SPRITE_BASE,
     STATE_BASE,
     STATE_END,
     link_command,
@@ -26,6 +27,7 @@ class MsxConsoleBuildTests(unittest.TestCase):
     def test_memory_profile_is_fixed(self) -> None:
         self.assertEqual(ROM_BASE, 0x4000)
         self.assertEqual(ADAPTER_BASE, 0x4013)
+        self.assertEqual(SPRITE_BASE, 0x4240)
         self.assertEqual(CORE_BASE, 0x4400)
         self.assertEqual(ROM_END, 0x8000)
         self.assertEqual(RAM_BASE, 0x8000)
@@ -42,13 +44,15 @@ class MsxConsoleBuildTests(unittest.TestCase):
         origins = [argument for argument in command if argument.startswith("-P")]
         self.assertEqual(
             origins,
-            ["-P0x4013", "-P0x4400", "-P0x8000", "-P0x8300"],
+            ["-P0x4013", "-P0x4240", "-P0x4400", "-P0x8000", "-P0x8300"],
         )
         self.assertIn("build/msx_storage.rel", command)
+        self.assertIn("build/msx_sprite.rel", command)
 
     def test_link_map_guard_accepts_the_fixed_windows(self) -> None:
         link_map = """\
 4013   0228   P  -          CONSOLE  build/msx_console.rel
+4240   0106   P  -          SPRITE.  build/msx_sprite.rel
 4400   0c5d   P  -          MAIN.Z8  build/main.rel
 505d   10d5   P  -          EXEC.Z8  build/exec.rel
 6132   0796   P  -          EVAL.Z8  build/eval.rel

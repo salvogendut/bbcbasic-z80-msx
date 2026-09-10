@@ -3,11 +3,12 @@
 # MSX platform adapter
 
 This directory contains independently written MSX and MSX2 platform code.
-`cartridge.z80`, `console.z80`, `graphics.z80`, `storage.z80`, and
-`state.z80` form the bootable P1 adapter. `descriptor.z80` adds the RainBIOS
-payload descriptor at `7FF0h` without changing the standard cartridge header.
-`layout_stub.z80` remains only as the earlier, nonfunctional address-layout
-proof.
+`cartridge.z80`, `console.z80`, `sprite.z80`, `graphics.z80`, `storage.z80`,
+and `state.z80` form the bootable P1 adapter. `sprite.z80` is linked into the
+ROM gap between the console adapter and the language core. `descriptor.z80`
+adds the RainBIOS payload descriptor at `7FF0h` without changing the standard
+cartridge header. `layout_stub.z80` remains only as the earlier, nonfunctional
+address-layout proof.
 
 The P1 adapter provides:
 
@@ -51,14 +52,15 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | Window | Contents |
 | --- | --- |
 | `4000h-4012h` | cartridge header and entry veneer |
-| `4013h-423Ah` | console adapter |
+| `4013h-423Fh` | console adapter |
+| `4240h-4345h` | sprite command adapter (`*SPRITE` etc.) |
 | `4400h-74C1h` | preserved BBC BASIC language core |
-| `74C2h-7B75h` | Graphics II adapter and remaining explicit stubs |
-| `7B76h-7D19h` | cassette program storage adapter |
+| `74C2h-7D3Fh` | graphics adapter (Graphics I/II, multicolor, sound) |
+| `7D40h-7EE3h` | cassette program storage adapter |
 | `7FF0h-7FFFh` | RainBIOS payload descriptor v1 |
 | `8000h-82FFh` | BBC BASIC fixed RAM |
-| `8300h-8339h` | adapter state and cassette scratch data |
-| `833Ah-F2FFh` | initial program/dynamic-memory window |
+| `8300h-833Bh` | adapter state and cassette scratch data |
+| `833Ch-F2FFh` | initial program/dynamic-memory window |
 
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
 MSX2 validation, random-access storage, and a RainBIOS return contract remain

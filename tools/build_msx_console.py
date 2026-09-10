@@ -29,6 +29,7 @@ else:
 
 ROM_BASE = 0x4000
 ADAPTER_BASE = 0x4013
+SPRITE_BASE = 0x4240
 CORE_BASE = 0x4400
 ROM_END = 0x8000
 RAM_BASE = 0x8000
@@ -38,7 +39,7 @@ DESCRIPTOR_ADDRESS = 0x7FF0
 EXPECTED_DESCRIPTOR = bytes.fromhex(
     "52 42 50 31 01 10 01 1F 10 40 00 80 00 F3 02 F5"
 )
-EXPECTED_SHA256 = "cd60f31faa39221e435a1c5e2be5654d4e5ee0081c9946c196685199e65613d6"
+EXPECTED_SHA256 = "cf0f37ef69e4333a0f13ddc9e50e04cde99af472a2cfc1071b8a8c14edd15987"
 CORE_MODULES = LANGUAGE_MODULES[:4]
 MAP_SECTION_RE = re.compile(
     r"^(?P<address>[0-9a-fA-F]{4})\s+"
@@ -83,8 +84,12 @@ def validate_map(text: str) -> None:
             )
 
     adapter_length, _ = by_address[ADAPTER_BASE]
-    if ADAPTER_BASE + adapter_length > CORE_BASE:
-        raise ValueError("MSX adapter overlaps the language core")
+    if ADAPTER_BASE + adapter_length > SPRITE_BASE:
+        raise ValueError("MSX adapter overlaps the sprite module")
+
+    sprite_length, _ = by_address[SPRITE_BASE]
+    if SPRITE_BASE + sprite_length > CORE_BASE:
+        raise ValueError("sprite module overlaps the language core")
 
     rom_sections = [
         (address, length, module)
@@ -120,6 +125,8 @@ def link_command(ld80: str, output_dir: pathlib.Path) -> list[str]:
         str(object_path(output_dir, "msx_cartridge")),
         f"-P{ADAPTER_BASE:#06x}",
         str(object_path(output_dir, "msx_console")),
+        f"-P{SPRITE_BASE:#06x}",
+        str(object_path(output_dir, "msx_sprite")),
         f"-P{CORE_BASE:#06x}",
         *(str(object_path(output_dir, module)) for module in CORE_MODULES),
         str(object_path(output_dir, "msx_graphics")),
@@ -174,6 +181,13 @@ def main() -> int:
             arguments.zmac,
             ROOT / "platform" / "msx" / "console.z80",
             object_path(output_dir, "msx_console"),
+        )
+    )
+    run(
+        assemble_command(
+            arguments.zmac,
+            ROOT / "platform" / "msx" / "sprite.z80",
+            object_path(output_dir, "msx_sprite"),
         )
     )
     run(

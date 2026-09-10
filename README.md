@@ -138,6 +138,14 @@ make test-msx-msx2-modes-1983 \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 
+The MSX2 plot test plots a point and reads it back with `POINT` on Screens
+5, 7, and 8:
+
+```sh
+make test-msx-msx2-plot-1983 \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
 The cassette adapter stores a six-character uppercase name in the standard
 MSX binary-tape two-block envelope. The sibling RainBIOS suite loads and runs
 a tokenized fixture in 1983 and records a real `SAVE` waveform in openMSX.

@@ -3,12 +3,12 @@
 # MSX platform adapter
 
 This directory contains independently written MSX and MSX2 platform code.
-`cartridge.z80`, `console.z80`, `sprite.z80`, `graphics.z80`, `storage.z80`,
-and `state.z80` form the bootable P1 adapter. `sprite.z80` is linked into the
-ROM gap between the console adapter and the language core. `descriptor.z80`
-adds the RainBIOS payload descriptor at `7FF0h` without changing the standard
-cartridge header. `layout_stub.z80` remains only as the earlier, nonfunctional
-address-layout proof.
+`cartridge.z80`, `console.z80`, `sprite.z80`, `msx2.z80`, `graphics.z80`,
+`storage.z80`, and `state.z80` form the bootable P1 adapter. `sprite.z80` and
+`msx2.z80` are linked into the ROM gap between the console adapter and the
+language core. `descriptor.z80` adds the RainBIOS payload descriptor at
+`7FF0h` without changing the standard cartridge header. `layout_stub.z80`
+remains only as the earlier, nonfunctional address-layout proof.
 
 The P1 adapter provides:
 
@@ -56,19 +56,21 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | `4000h-4012h` | cartridge header and entry veneer |
 | `4013h-423Fh` | console adapter |
 | `4240h-4345h` | sprite command adapter (`*SPRITE` etc.) |
+| `4346h-43E1h` | MSX2 bitmap pixel adapter |
 | `4400h-74C1h` | preserved BBC BASIC language core |
-| `74C2h-7D3Fh` | graphics adapter (Graphics I/II, multicolor, sound) |
-| `7D40h-7EE3h` | cassette program storage adapter |
+| `74C2h-7DFAh` | graphics adapter (Graphics I/II, multicolor, sound) |
+| `7DFBh-7F9Eh` | cassette program storage adapter |
 | `7FF0h-7FFFh` | RainBIOS payload descriptor v1 |
 | `8000h-82FFh` | BBC BASIC fixed RAM |
-| `8300h-833Bh` | adapter state and cassette scratch data |
-| `833Ch-F2FFh` | initial program/dynamic-memory window |
+| `8300h-833Ch` | adapter state and cassette scratch data |
+| `833Dh-F2FFh` | initial program/dynamic-memory window |
 
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
 The MSX2 bitmap screens (`MODE 5`-`8`) are programmed through the extended VDP
-registers and default palette; bitmap clearing and plot/point at the MSX2
-resolutions remain later work. Random-access storage and a RainBIOS return
-contract are also later milestones.
+registers and default palette, cleared with `FILVRM`, and support `MOVE`/
+`DRAW`/`PLOT`/`POINT` at the 4bpp (Screen 5) and 8bpp (Screens 7/8)
+resolutions; Screen 6 (2bpp, 512-wide) is not yet handled. Random-access
+storage and a RainBIOS return contract are also later milestones.
 
 The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
 `8000h-F2FFh` RAM window, two contiguous RAM pages, and required console,

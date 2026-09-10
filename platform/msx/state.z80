@@ -46,6 +46,7 @@
         GLOBAL  TAPECOUNT
         GLOBAL  SOUNDREG
         GLOBAL  ENVON
+        GLOBAL  CURMODE
 
 PSTBASE:
 TIMEOFF:        DEFS    4
@@ -88,6 +89,7 @@ TAPEADDRESS:    DEFS    2
 TAPECOUNT:      DEFS    2
 SOUNDREG:       DEFS    1
 ENVON:          DEFS    1
+CURMODE:        DEFS    1
 PSTEND:
 
 FIN:    END

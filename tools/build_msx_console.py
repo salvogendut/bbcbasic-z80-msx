@@ -30,16 +30,17 @@ else:
 ROM_BASE = 0x4000
 ADAPTER_BASE = 0x4013
 SPRITE_BASE = 0x4240
+MSX2_BASE = 0x4346
 CORE_BASE = 0x4400
 ROM_END = 0x8000
 RAM_BASE = 0x8000
 STATE_BASE = 0x8300
-STATE_END = 0x833C
+STATE_END = 0x833D
 DESCRIPTOR_ADDRESS = 0x7FF0
 EXPECTED_DESCRIPTOR = bytes.fromhex(
     "52 42 50 31 01 10 01 1F 10 40 00 80 00 F3 02 F5"
 )
-EXPECTED_SHA256 = "bdb442ba769ff3225508bc0804dd9c884e31fa92a7966c1ace2ab01327e57a70"
+EXPECTED_SHA256 = "197096dd26c67526e7d6f486b0a7c3d23f7bd9acf6bc683772e4f7a7388373bb"
 CORE_MODULES = LANGUAGE_MODULES[:4]
 MAP_SECTION_RE = re.compile(
     r"^(?P<address>[0-9a-fA-F]{4})\s+"
@@ -88,8 +89,12 @@ def validate_map(text: str) -> None:
         raise ValueError("MSX adapter overlaps the sprite module")
 
     sprite_length, _ = by_address[SPRITE_BASE]
-    if SPRITE_BASE + sprite_length > CORE_BASE:
-        raise ValueError("sprite module overlaps the language core")
+    if SPRITE_BASE + sprite_length > MSX2_BASE:
+        raise ValueError("sprite module overlaps the MSX2 module")
+
+    msx2_length, _ = by_address[MSX2_BASE]
+    if MSX2_BASE + msx2_length > CORE_BASE:
+        raise ValueError("MSX2 module overlaps the language core")
 
     rom_sections = [
         (address, length, module)
@@ -127,6 +132,8 @@ def link_command(ld80: str, output_dir: pathlib.Path) -> list[str]:
         str(object_path(output_dir, "msx_console")),
         f"-P{SPRITE_BASE:#06x}",
         str(object_path(output_dir, "msx_sprite")),
+        f"-P{MSX2_BASE:#06x}",
+        str(object_path(output_dir, "msx_msx2")),
         f"-P{CORE_BASE:#06x}",
         *(str(object_path(output_dir, module)) for module in CORE_MODULES),
         str(object_path(output_dir, "msx_graphics")),
@@ -188,6 +195,13 @@ def main() -> int:
             arguments.zmac,
             ROOT / "platform" / "msx" / "sprite.z80",
             object_path(output_dir, "msx_sprite"),
+        )
+    )
+    run(
+        assemble_command(
+            arguments.zmac,
+            ROOT / "platform" / "msx" / "msx2.z80",
+            object_path(output_dir, "msx_msx2"),
         )
     )
     run(

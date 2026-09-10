@@ -45,6 +45,9 @@
         EXTRN   TRITOP
         EXTRN   SOUNDREG
         EXTRN   ENVON
+        EXTRN   CURMODE
+        EXTRN   MSX2_PIXEL
+        EXTRN   MSX2_READPIXEL
 
         GLOBAL  CLG
         GLOBAL  COLOUR
@@ -83,6 +86,7 @@ MODE:   CALL    EXPRI
         JP      NC,GRAPHERR
         CP      4
         JP      Z,GRAPHERR
+        LD      (CURMODE),A     ; record the screen mode
         CP      5
         JP      NC,MODE_MSX2
         OR      A
@@ -800,6 +804,9 @@ PIXELAT:
 FILLPIXEL:
         LD      A,(GRAPHCOLOUR)
         LD      E,A
+        LD      A,(CURMODE)
+        CP      5
+        JP      NC,MSX2_PIXEL
         LD      A,(PIXELMODE)
         CP      1
         JR      Z,XORPIXEL
@@ -859,6 +866,9 @@ PIXELWRITE:
 
 ; Read the foreground or background colour selected by one physical pixel.
 READPIXEL:
+        LD      A,(CURMODE)
+        CP      5
+        JP      NC,MSX2_READPIXEL
         CALL    PIXELADDRESS
         LD      D,A
         PUSH    HL

@@ -19,7 +19,8 @@ OPENMSX_MODE_REPORT = $(BUILD_DIR)/msx-console/openmsx-mode.txt
 
 .PHONY: audit-core check cpm-baseline help msx-console msx-layout test toolcheck \
 	test-msx-console-1983 test-msx-console-openmsx \
-	test-msx-graphics-openmsx verify-provenance test-msx-msx2-modes-1983
+	test-msx-graphics-openmsx verify-provenance test-msx-msx2-modes-1983 \
+	test-msx-msx2-plot-1983
 
 help:
 	@echo "make test               Run source-layout tests"
@@ -36,6 +37,7 @@ help:
 	@echo "make test-msx-sprite-openmsx  Run the BBC *SPRITE commands in openMSX"
 	@echo "make test-msx-mode-openmsx    Run the BBC MODE screen switches in openMSX"
 	@echo "make test-msx-msx2-modes-1983 Run the BBC MSX2 MODE 5-8 switches in 1983"
+	@echo "make test-msx-msx2-plot-1983  Run the BBC MSX2 PLOT/POINT round trip in 1983"
 	@echo "make check              Run all checks which do not require an assembler"
 
 test:
@@ -111,6 +113,11 @@ test-msx-mode-openmsx: msx-console
 
 test-msx-msx2-modes-1983: msx-console
 	$(PYTHON) tools/check_1983_msx2_modes.py \
+		--1983 "$(MSX1983)" --models "$(MSX1983_MODELS)" \
+		--cart "$(abspath $(MSX_CONSOLE_ROM))"
+
+test-msx-msx2-plot-1983: msx-console
+	$(PYTHON) tools/check_1983_msx2_plot.py \
 		--1983 "$(MSX1983)" --models "$(MSX1983_MODELS)" \
 		--cart "$(abspath $(MSX_CONSOLE_ROM))"
 

@@ -25,6 +25,13 @@ The P1 adapter provides:
   milestone), single points in modes 64-79, and filled triangles in modes
   80-95 using the two most recently visited points; absolute modes set
   mode bit 2 and relative modes are clear;
+- `SOUND channel, amplitude, pitch, duration` mapped onto the PSG: channel 0
+  drives the noise channel and channels 1-3 drive tone A/B/C, amplitude 0..-15
+  maps to the 4-bit volume, pitch 0-255 maps to a linear 12-bit period (a
+  logarithmic BBC-pitch approximation), and a positive duration is a
+  synchronous JIFFY-timed note that silences the channel afterwards;
+- `ADVAL(n)` returning joystick 1/2 direction for `n` 0/2 and trigger state
+  for `n` 1/3, a digital approximation of the BBC analogue channels;
 - sequential cassette program `SAVE` and `LOAD`, with case-insensitive
   six-character names and the standard MSX binary-tape envelope;
 - an explicit `Storage unsupported` error for random-access channels and
@@ -47,8 +54,8 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | `833Ah-F2FFh` | initial program/dynamic-memory window |
 
 The `JIFFY`-derived clock wraps with the underlying 16-bit BIOS counter in P1.
-MSX2 validation, sound, random-access storage, and a RainBIOS return contract
-remain later milestones.
+MSX2 validation, envelope shaping (`ENVELOPE`), random-access storage, and a
+RainBIOS return contract remain later milestones.
 
 The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
 `8000h-F2FFh` RAM window, two contiguous RAM pages, and required console,

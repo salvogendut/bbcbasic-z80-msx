@@ -11,9 +11,10 @@ The cassette milestone is bootable. It packages the unchanged language
 core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
 editing, integer and floating-point expressions, strings, stored programs,
-`TIME`, timed `INKEY`, an initial TMS9918 Graphics II subset, and sequential
-program `SAVE`/`LOAD` on cassette. Random-access file channels remain future
-work and report `Storage unsupported`.
+`TIME`, timed `INKEY`, an initial TMS9918 Graphics II subset, PSG-backed
+`SOUND` with a controller-reading `ADVAL`, and sequential program
+`SAVE`/`LOAD` on cassette. Random-access file channels and envelope shaping
+remain future work and report `Storage unsupported` / `Sorry`.
 
 ## Repository branches
 
@@ -97,6 +98,14 @@ triangles, and guards the cartridge window against writes:
 
 ```sh
 make test-msx-graphics-openmsx \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The `SOUND` test types three `SOUND` commands and verifies the resulting PSG
+register state (tone A/C periods, volumes, and the noise-channel mixer):
+
+```sh
+make test-msx-sound-openmsx \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 

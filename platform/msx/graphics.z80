@@ -66,24 +66,35 @@ RDVRM   EQU     004AH
 WRTVRM  EQU     004DH
 FILVRM  EQU     0056H
 INITXT  EQU     006CH
+INIT32  EQU     006FH
 INITGRP EQU     0072H
+INIMLT  EQU     0075H
 SCRMOD  EQU     0FCAFH
 
-; MODE 2 selects Graphics II. MODE 7 returns to the 40-column text screen.
+; MODE 1 = Screen 1 (Graphics I), MODE 2 = Screen 2 (Graphics II),
+; MODE 3 = Screen 3 (multicolor), MODE 7 = Screen 0 (40-column text).
 MODE:   CALL    EXPRI
         EXX
         LD      A,H
         OR      A
-        JR      NZ,GRAPHERR
+        JP      NZ,GRAPHERR
         LD      A,L
+        CP      1
+        JR      Z,MODE1
         CP      2
         JR      Z,MODE2
+        CP      3
+        JR      Z,MODE3
         CP      7
         JP      NZ,GRAPHERR
         CALL    INITXT
         JP      XEQ
+MODE1:  CALL    INIT32
+        JP      XEQ
 MODE2:  CALL    INITGRP
         CALL    RESETGRAPH
+        JP      XEQ
+MODE3:  CALL    INIMLT
         JP      XEQ
 
 ; Clear the Graphics II bitmap and reset the graphics cursor to BBC (0,0).
@@ -1434,11 +1445,11 @@ SPRITECMD:
         RET     NC
         ; HL now points after "SPRITE".
         LD      A,(HL)
-        CALL    UPCASE
+        AND     5FH             ; uppercase
         CP      'O'
-        JP      Z,SPRITEOFFCMD
+        JR      Z,SPRITEOFFCMD
         CP      'P'
-        JP      Z,SPRITEPATCMD
+        JR      Z,SPRITEPATCMD
         CP      'C'
         JP      Z,SPRITECLRCMD
         ; *SPRITE n,x,y,pattern,colour
@@ -1536,15 +1547,11 @@ SPRITEPAT_LOOP:
         SCF
         RET
 
-; *SPRITECLR: clear the sprite pattern table and hide all 32 sprites.
+; *SPRITECLR: hide all 32 sprites.
 SPRITECLRCMD:
         INC     HL              ; skip C
         INC     HL              ; skip L
         INC     HL              ; skip R
-        LD      HL,PATBASE
-        LD      BC,0800H
-        XOR     A
-        CALL    FILVRM
         LD      HL,ATRBASE
         LD      B,32
 SPRITECLR_LOOP:
@@ -1560,14 +1567,6 @@ SPRITECLR_LOOP:
         INC     HL
         DJNZ    SPRITECLR_LOOP
         SCF
-        RET
-
-; Uppercase A (a-z -> A-Z).
-UPCASE: CP      'a'
-        RET     C
-        CP      'z'+1
-        RET     NC
-        AND     5FH
         RET
 
 ; Advance HL past a leading space.
@@ -1598,7 +1597,7 @@ MATCHSPRITE_LOOP:
         INC     DE
         LD      C,A
         LD      A,(HL)
-        CALL    UPCASE
+        AND     5FH             ; uppercase
         CP      C
         JR      NZ,MATCHSPRITE_FAIL
         INC     HL

@@ -19,7 +19,8 @@ The P1 adapter provides:
 - cursor position tracking;
 - a settable centisecond counter for both 50 Hz and 60 Hz machines;
 - Escape polling without consuming ordinary pending keys;
-- Graphics II `MODE 2`, text `MODE 7`, `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
+- Graphics I `MODE 1`, Graphics II `MODE 2`, multicolor `MODE 3`, and text
+  `MODE 7` screen selection plus `CLG`, `GCOL 0,c`, `MOVE`, `DRAW`,
   `POINT(x,y)`, and `PLOT`: lines and pure moves in modes 0-63 (solid for
   0-15, dotted for 16-31, with modes 32-63 rendering dotted in this
   milestone), single points in modes 64-79, and filled triangles in modes

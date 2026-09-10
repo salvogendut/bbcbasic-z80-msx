@@ -11,7 +11,8 @@ The cassette milestone is bootable. It packages the unchanged language
 core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
 editing, integer and floating-point expressions, strings, stored programs,
-`TIME`, timed `INKEY`, an initial TMS9918 Graphics II subset, PSG-backed
+`TIME`, timed `INKEY`, TMS9918 screen modes (`MODE 1` Graphics I,
+`MODE 2` Graphics II, `MODE 3` multicolor, `MODE 7` text), PSG-backed
 `SOUND`/`ENVELOPE` with a controller-reading `ADVAL`, hardware sprites via
 `*SPRITE`/`*SPRITEPAT`/`*SPRITEOFF`/`*SPRITECLR`, and sequential program
 `SAVE`/`LOAD` on cassette. Random-access file channels remain future work and
@@ -117,6 +118,14 @@ sprite, and verifies the resulting VDP sprite attribute and pattern tables:
 
 ```sh
 make test-msx-sprite-openmsx \
+    ZMAC=/path/to/zmac LD80=/path/to/ld80
+```
+
+The `MODE` test switches through the four MSX1 screen modes and verifies the
+resulting `SCRMOD` work-area value:
+
+```sh
+make test-msx-mode-openmsx \
     ZMAC=/path/to/zmac LD80=/path/to/ld80
 ```
 

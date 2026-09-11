@@ -7,6 +7,12 @@ MSX2 computers. The first intended consumer is
 [RainBIOS](https://github.com/salvogendut/rainbios), with a standalone
 cartridge or ROM payload as a second target.
 
+This port is derived from the openly available
+[`third_party/bbcbasic`](https://github.com/davidgiven/cpmish/tree/master/third_party/bbcbasic)
+source subtree in David Given's CP/Mish project. BBC BASIC for Z80 was
+originally written by R. T. Russell; its original project page is
+[`BBC BASIC for Z80`](http://www.rtrussell.co.uk/bbcbasic/z80basic.html).
+
 The cassette milestone is bootable. It packages the unchanged language
 core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
@@ -28,9 +34,10 @@ future work and report `Storage unsupported`.
 - `main` contains the MSX port, tests, documentation, and independently
   written platform code.
 
-See [UPSTREAM.md](UPSTREAM.md) for the exact source revision, tree identity,
-and commit mapping. The source tree on `upstream` is byte-for-byte identical
-to `third_party/bbcbasic` in the recorded CP/Mish revision.
+See [UPSTREAM.md](UPSTREAM.md) for the original author and project page, exact
+source revision, tree identity, and commit mapping. The source tree on
+`upstream` is byte-for-byte identical to `third_party/bbcbasic` in the
+recorded CP/Mish revision.
 
 ## Current checks
 

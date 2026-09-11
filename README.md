@@ -7,6 +7,12 @@ MSX2 computers. The first intended consumer is
 [RainBIOS](https://github.com/salvogendut/rainbios), with a standalone
 cartridge or ROM payload as a second target.
 
+This port is derived from the openly available
+[`third_party/bbcbasic`](https://github.com/davidgiven/cpmish/tree/master/third_party/bbcbasic)
+source subtree in David Given's CP/Mish project. BBC BASIC for Z80 was
+originally written by R. T. Russell; its original project page is
+[`BBC BASIC for Z80`](http://www.rtrussell.co.uk/bbcbasic/z80basic.html).
+
 The cassette milestone is bootable. It packages the unchanged language
 core with an independently written MSX adapter in a deterministic 16 KiB
 cartridge ROM. On MSX1 it reaches the interactive prompt, supports line
@@ -16,8 +22,10 @@ editing, integer and floating-point expressions, strings, stored programs,
 and `MODE 5`-`8` the MSX2 V9938/V9958 bitmap screens — plus PSG-backed
 `SOUND`/`ENVELOPE` with a controller-reading `ADVAL`, hardware sprites via
 `*SPRITE`/`*SPRITEPAT`/`*SPRITEOFF`/`*SPRITECLR`, and sequential program
-`SAVE`/`LOAD` on cassette. Random-access file channels remain future work and
-report `Storage unsupported`.
+`SAVE`/`LOAD` on cassette. Under RainBIOS, an explicit `A:` prefix instead
+uses its bounded FAT12 services: `SAVE "A:NAME"` creates or replaces
+`NAME.BBC`, and `LOAD "A:NAME"` reloads it. Random-access file channels remain
+future work and report `Storage unsupported`.
 
 ## Repository branches
 
@@ -26,9 +34,10 @@ report `Storage unsupported`.
 - `main` contains the MSX port, tests, documentation, and independently
   written platform code.
 
-See [UPSTREAM.md](UPSTREAM.md) for the exact source revision, tree identity,
-and commit mapping. The source tree on `upstream` is byte-for-byte identical
-to `third_party/bbcbasic` in the recorded CP/Mish revision.
+See [UPSTREAM.md](UPSTREAM.md) for the original author and project page, exact
+source revision, tree identity, and commit mapping. The source tree on
+`upstream` is byte-for-byte identical to `third_party/bbcbasic` in the
+recorded CP/Mish revision.
 
 ## Current checks
 
@@ -72,7 +81,7 @@ make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
 
 The result is `build/msx-console/bbcbasic_msx_console.rom`: 16,384 bytes with
 SHA-256
-`5f8d03ea3c9a3ae4b7113ae6d4799fdb1d4800cc4777fd5ffcbac35ad24a5027`.
+`06d7935ee22650e89c6526bb4b0d457e320060f17ebf809fe220f719d1e15fc5`.
 The build validates its link map and fails if the ROM differs.
 
 The final 16 bytes contain RainBIOS payload descriptor v1 while the ordinary
@@ -169,6 +178,17 @@ The cassette adapter stores a six-character uppercase name in the standard
 MSX binary-tape two-block envelope. The sibling RainBIOS suite loads and runs
 a tokenized fixture in 1983 and records a real `SAVE` waveform in openMSX.
 `tools/make_msx_tape_fixture.py` generates the deterministic load fixture.
+Unprefixed names always retain that cassette behavior.
+
+The RainBIOS floppy extension accepts a one-to-eight-character stem containing
+ASCII letters, digits, `_`, or `-`; matching is case-insensitive and the FAT
+name receives a fixed `.BBC` extension. The private bridge is enabled only
+after the adapter sees RainBIOS's `RBFS` page-0 signature. RainBIOS then
+discovers the active disk-system master through `H.PHYD`, verifies its
+versioned filesystem capability block, bounds loads before writing program
+RAM, and maps disk errors to explicit BASIC errors. The initial BASIC RAM top
+is `E6E0h`, leaving a 256-byte guard before RainBIOS's 2080-byte FAT12 work
+area at `E7E0h-EFFFh`; the disk system keeps its private `F000h-F2FFh` state.
 
 These emulator targets are optional integration checks; `make check` needs no
 assembler or emulator.

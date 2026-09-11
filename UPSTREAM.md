@@ -2,9 +2,16 @@
 
 # Upstream provenance
 
-The imported source comes from the public CP/Mish repository:
+BBC BASIC for Z80 was originally written by R. T. Russell. Its original
+project page is:
+
+- `http://www.rtrussell.co.uk/bbcbasic/z80basic.html`
+
+This MSX port is derived from the openly available BBC BASIC source subtree
+in David Given's public CP/Mish repository:
 
 - repository: `https://github.com/davidgiven/cpmish`
+- source page: `https://github.com/davidgiven/cpmish/tree/master/third_party/bbcbasic`
 - snapshot commit: `d70c643a5db24007ad6533f92b701fd714a99b7f`
 - source directory: `third_party/bbcbasic`
 - source tree object: `e9d0ae3c5f53fbd78379aa0d3f38d13f31c823f6`

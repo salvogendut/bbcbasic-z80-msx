@@ -5,6 +5,9 @@
         TITLE   BBC BASIC MSX CARTRIDGE HEADER
 
         EXTRN   START
+        EXTRN   EXTERR
+        EXTRN   CASSSAVE
+        EXTRN   CASSLOAD
 
         ASEG
         ORG     4000H
@@ -14,7 +17,9 @@
         DEFW    0
         DEFW    0
         DEFW    0
-        DEFS    6
+        DEFW    CASSSAVE     ;RAINBIOS STORAGE FALLBACK: SAVE
+        DEFW    CASSLOAD     ;RAINBIOS STORAGE FALLBACK: LOAD
+        DEFW    EXTERR          ;RAINBIOS STORAGE ERROR CALLBACK
 
 ENTRY:  JP      START
 

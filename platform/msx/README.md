@@ -49,6 +49,8 @@ The P1 adapter provides:
 - RainBIOS FAT12 program storage selected explicitly by `A:` names, using a
   private versioned bridge while retaining cassette behavior for unprefixed
   names and for standalone use on other firmware;
+- RainBIOS drive-A catalogues through the equivalent `*CAT` and `*DIR`
+  OSCLI commands;
 - an explicit `Storage unsupported` error for random-access channels and
   remaining file/OS operations.
 
@@ -59,9 +61,9 @@ The standalone build currently requires an MSX1-compatible BIOS, at least
 | Window | Contents |
 | --- | --- |
 | `4000h-4012h` | cartridge header and entry veneer |
-| `4013h-4247h` | console adapter |
-| `4248h-434Dh` | sprite command adapter (`*SPRITE` etc.) |
-| `4350h-43F7h` | MSX2 bitmap pixel adapter |
+| `4013h-424Bh` | console adapter |
+| `424Ch-4351h` | sprite command adapter (`*SPRITE` etc.) |
+| `4352h-43F9h` | MSX2 bitmap pixel adapter |
 | `4400h-74C1h` | preserved BBC BASIC language core |
 | `74C2h-7E45h` | graphics adapter (Graphics I/II, multicolor, sound) |
 | `7E46h-7FEFh` | cassette/RainBIOS program storage adapter |
@@ -83,7 +85,8 @@ half until a 16-bit X coordinate is introduced. Screen 6 maps logical colours
 to its four physical colours. In `MODE 5`-`8` BIOS character output is
 suppressed so text cannot corrupt the bitmap. Random-access storage and a
 RainBIOS return contract are also later milestones. Sequential FAT12 program
-SAVE/LOAD is available through the versioned RainBIOS bridge.
+SAVE/LOAD and drive-A catalogues are available through the versioned RainBIOS
+bridge.
 
 The descriptor identifies payload type 1 (BASIC), entry `4010h`, the
 `8000h-E6DFh` RAM window, two contiguous RAM pages, and required console,
@@ -95,8 +98,9 @@ pointers used only after the payload has detected RainBIOS: cassette SAVE,
 cassette LOAD, and the interpreter's extended-error entry. RainBIOS uses those
 pointers to return unprefixed names to the cassette implementation and to
 report disk errors without relying on hard-coded payload link addresses. The
-adapter checks the `RB` prefix of RainBIOS's four-byte signature before calling
-the fixed bridge entry; other BIOSes retain cassette behavior.
+adapter checks RainBIOS's complete four-byte signature before calling the
+fixed bridge entry; other BIOSes retain cassette behavior and reject the
+RainBIOS-only catalogue commands.
 
 BBC logical coordinates use `0..1279` by `0..1023` with the origin at bottom
 left and are scaled to the 256 by 192 display. Logical colours 0 through 7

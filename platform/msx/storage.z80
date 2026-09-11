@@ -18,6 +18,7 @@
         GLOBAL  OSSAVE
         GLOBAL  CASSSAVE
         GLOBAL  CASSLOAD
+        GLOBAL  STORAGECMD
 
 ; Published MSX BIOS entry points.
 RAINFS_SIGNATURE EQU 0165H
@@ -36,8 +37,11 @@ CR      EQU     0DH
 ; names return through the cassette entry pointers published in the cartridge
 ; header. On other firmware, require the complete signature before using the
 ; private entry and retain the legacy cassette behavior otherwise.
-; A = 0 for SAVE, 1 for LOAD.
+; A = 0 for SAVE, 1 for LOAD, 2 for an OSCLI command.
 OSSAVE: XOR     A
+        JR      MSXSTORAGE
+STORAGECMD:
+        LD      A,2
         JR      MSXSTORAGE
 OSLOAD: LD      A,1
 MSXSTORAGE:
@@ -58,6 +62,8 @@ MSXSTORAGE:
         JP      RAINFS_ENTRY
 MSXSTORAGELEGACY:
         POP     AF
+        CP      2
+        RET     NC
         OR      A
         JR      NZ,CASSLOAD
 
@@ -109,8 +115,7 @@ OSSAVEDATA:
         DEC     BC
         JR      OSSAVEDATA
 OSSAVEDONE:
-        CALL    TAPOOF
-        RET
+        JP      TAPOOF
 
 ; OSLOAD
 ;   HL = CR-terminated filename
@@ -163,8 +168,8 @@ OSLOADSEARCH:
         RET
 
 OSLOADROOM:
-        LD      (TAPECOUNT),HL
-        LD      BC,(TAPECOUNT)
+        LD      B,H
+        LD      C,L
         LD      DE,(TAPEADDRESS)
 OSLOADDATA:
         LD      A,B
@@ -226,9 +231,8 @@ TAPEMAKEINFO:
         ADD     HL,BC
         DEC     HL
         LD      (TAPEMETA+2),HL
-        XOR     A
-        LD      (TAPEMETA+4),A
-        LD      (TAPEMETA+5),A
+        LD      HL,0
+        LD      (TAPEMETA+4),HL
         RET
 
 ; Write B bytes at HL. The BIOS byte call may destroy all ordinary registers.

@@ -32,13 +32,13 @@ module occupies `8000h-82FFh`. The resulting 16 KiB layout ROM has SHA-256
 Its service routines are nonfunctional stubs.
 
 The subsequent MSX build keeps the cartridge veneer at `4000h`, places the
-independently written console adapter at `4013h-4247h`, sprite adapter at
-`4248h-434Dh`, MSX2 pixel adapter at `4350h-43F7h`, the unchanged core at
+independently written console adapter at `4013h-424Bh`, sprite adapter at
+`424Ch-4351h`, MSX2 pixel adapter at `4352h-43F9h`, the unchanged core at
 `4400h-74C1h`, graphics/media adapter at `74C2h-7E45h`, and cassette storage
 at `7E46h-7FEFh`. RainBIOS payload descriptor v1 remains at `7FF0h-7FFFh`,
 fixed RAM at `8000h-82FFh`, and 62 adapter-state bytes at `8300h-833Dh`. Its
 16 KiB ROM has SHA-256
-`06d7935ee22650e89c6526bb4b0d457e320060f17ebf809fe220f719d1e15fc5`.
+`e64ba3c3e72bf562d835cebfbb274283b3f0bb4bc0997123d6a00fdd38ceaa67`.
 The build driver parses the linker map and rejects boundary overlap.
 
 `ram.z80` requires `ACCS`, `BUFFER`, and `STAVAR` to be page-aligned. Linking
@@ -58,10 +58,11 @@ OSOPEN  OSRDCH  OSSAVE  OSSHUT  OSSTAT  OSWRCH PROMPT
 PUTCSR  PUTIME  PUTPTR  RESET   TRAP
 ```
 
-The storage slice implements `OSLOAD` and `OSSAVE`: ordinary names use the
-cassette adapter, while `A:` names use the versioned RainBIOS FAT12 bridge.
-Remaining channel and random-access calls retain explicit unsupported errors. All symbols have
-documented flag and register behaviour.
+The storage slice implements `OSLOAD`, `OSSAVE`, and a RainBIOS OSCLI handoff:
+ordinary names use the cassette adapter, `A:` names use the versioned RainBIOS
+FAT12 bridge, and `*CAT`/`*DIR` request its drive-A catalogue. Remaining
+channel and random-access calls retain explicit unsupported errors. All
+symbols have documented flag and register behaviour.
 
 ## Static findings
 

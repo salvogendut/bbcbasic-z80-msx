@@ -24,8 +24,8 @@ and `MODE 5`-`8` the MSX2 V9938/V9958 bitmap screens — plus PSG-backed
 `*SPRITE`/`*SPRITEPAT`/`*SPRITEOFF`/`*SPRITECLR`, and sequential program
 `SAVE`/`LOAD` on cassette. Under RainBIOS, an explicit `A:` prefix instead
 uses its bounded FAT12 services: `SAVE "A:NAME"` creates or replaces
-`NAME.BBC`, and `LOAD "A:NAME"` reloads it. Random-access file channels remain
-future work and report `Storage unsupported`.
+`NAME.BBC`, `LOAD "A:NAME"` reloads it, and `*CAT` or `*DIR` lists drive A.
+Random-access file channels remain future work and report `Storage unsupported`.
 
 ## Repository branches
 
@@ -81,7 +81,7 @@ make msx-console ZMAC=/path/to/zmac LD80=/path/to/ld80
 
 The result is `build/msx-console/bbcbasic_msx_console.rom`: 16,384 bytes with
 SHA-256
-`06d7935ee22650e89c6526bb4b0d457e320060f17ebf809fe220f719d1e15fc5`.
+`e64ba3c3e72bf562d835cebfbb274283b3f0bb4bc0997123d6a00fdd38ceaa67`.
 The build validates its link map and fails if the ROM differs.
 
 The final 16 bytes contain RainBIOS payload descriptor v1 while the ordinary

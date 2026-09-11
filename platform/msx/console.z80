@@ -21,6 +21,7 @@
         EXTRN   GRAPHCOLOUR
         EXTRN   CURMODE
         EXTRN   SPRITECMD
+        EXTRN   STORAGECMD
 
         GLOBAL  CLRSCN
         GLOBAL  CENTSTOTICKS
@@ -444,6 +445,8 @@ OSCLI:  LD      A,(HL)
         CP      CR
         RET     Z
         CALL    SPRITECMD
+        RET     C
+        CALL    STORAGECMD
         RET     C
 UNSUPPORTED:
         LD      A,200

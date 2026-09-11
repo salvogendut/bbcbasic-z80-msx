@@ -50,7 +50,7 @@ The P1 adapter provides:
   private versioned bridge while retaining cassette behavior for unprefixed
   names and for standalone use on other firmware;
 - RainBIOS drive-A catalogues through the equivalent `*CAT` and `*DIR`
-  OSCLI commands;
+  OSCLI commands, including a FAT-derived `Free: n KiB` summary;
 - an explicit `Storage unsupported` error for random-access channels and
   remaining file/OS operations.
 

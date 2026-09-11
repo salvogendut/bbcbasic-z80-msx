@@ -60,8 +60,9 @@ PUTCSR  PUTIME  PUTPTR  RESET   TRAP
 
 The storage slice implements `OSLOAD`, `OSSAVE`, and a RainBIOS OSCLI handoff:
 ordinary names use the cassette adapter, `A:` names use the versioned RainBIOS
-FAT12 bridge, and `*CAT`/`*DIR` request its drive-A catalogue. Remaining
-channel and random-access calls retain explicit unsupported errors. All
+FAT12 bridge, and `*CAT`/`*DIR` request its drive-A catalogue and FAT-derived
+free-space summary. Remaining channel and random-access calls retain explicit
+unsupported errors. All
 symbols have documented flag and register behaviour.
 
 ## Static findings

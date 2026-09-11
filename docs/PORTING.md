@@ -59,10 +59,10 @@ commands follow only after the interpreter is stable.
    the clock, and timed keyboard input.
 6. **Graphics, cassette, floppy-program, media, and MSX2 slices complete:**
    the MSX1 graphics subset, sequential tape storage, RainBIOS FAT12 program
-   SAVE/LOAD and `*CAT`/`*DIR`, PSG sound/envelope approximation,
-   controller reads, Screen 2 sprites, and MSX2 Screens 5-8 are tested with
-   openMSX and 1983. Random-access storage and a RainBIOS return contract
-   remain later work.
+   SAVE/LOAD and `*CAT`/`*DIR` with free-space reporting, PSG sound/envelope
+   approximation, controller reads, Screen 2 sprites, and MSX2 Screens 5-8
+   are tested with openMSX and 1983. Random-access storage and a RainBIOS
+   return contract remain later work.
 
 ## Initial memory strategy
 

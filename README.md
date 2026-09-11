@@ -24,7 +24,8 @@ and `MODE 5`-`8` the MSX2 V9938/V9958 bitmap screens — plus PSG-backed
 `*SPRITE`/`*SPRITEPAT`/`*SPRITEOFF`/`*SPRITECLR`, and sequential program
 `SAVE`/`LOAD` on cassette. Under RainBIOS, an explicit `A:` prefix instead
 uses its bounded FAT12 services: `SAVE "A:NAME"` creates or replaces
-`NAME.BBC`, `LOAD "A:NAME"` reloads it, and `*CAT` or `*DIR` lists drive A.
+`NAME.BBC`, `LOAD "A:NAME"` reloads it, and `*CAT` or `*DIR` lists drive A
+with the available FAT12 space in KiB.
 Random-access file channels remain future work and report `Storage unsupported`.
 
 ## Repository branches
